@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0b10">
+<title>Wishlist · RAPI STORE</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff4d7d' d='M12 21s-7.5-4.6-10-9.3C.5 8.6 2 5 5.5 5c2 0 3.4 1.2 4.5 2.7C11.1 6.2 12.5 5 14.5 5 18 5 19.5 8.6 18 11.7 19.5 16.4 12 21 12 21z'/%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#0b0b10;
+    --surface:#15151c;
+    --surface-2:#1c1c25;
+    --line:#27272f;
+    --text:#f1f0ee;
+    --text-muted:#94939f;
+    --text-faint:#5d5c68;
+    --rose:#ff4d7d;
+    --rose-soft:#ff4d7d1f;
+    --gold:#ffb84d;
+    --good:#46d29c;
+    --bad:#ff5c5c;
+    --radius-lg:20px;
+    --radius:14px;
+    --radius-sm:10px;
+    --font-display:'Fraunces', serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    line-height:1.5;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{ color:inherit; text-decoration:none; }
+  button{ font-family:inherit; border:none; background:none; color:inherit; cursor:pointer; }
+  img{ display:block; max-width:100%; }
+  :focus-visible{ outline:2px solid var(--rose); outline-offset:2px; border-radius:6px; }
+
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+  @keyframes fadeOut{ to{opacity:0; transform:scale(.96);} }
+  @keyframes shimmer{ to{ background-position-x:-200%; } }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
+  }
+
+  /* ---------- topbar ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    background:rgba(11,11,16,0.86);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-inner{
+    max-width:760px; margin:0 auto; padding:14px 20px;
+    display:flex; align-items:center; gap:14px;
+  }
+  .back-link{
+    width:36px; height:36px; border-radius:50%; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--surface); border:1px solid var(--line);
+    font-size:16px; transition:.18s ease;
+  }
+  .back-link:hover{ border-color:var(--rose); color:var(--rose); }
+  .topbar-title{
+    font-family:var(--font-display); font-weight:600; font-size:15px;
+    letter-spacing:.01em; flex:1;
+  }
+  .topbar-title .accent{ color:var(--rose); }
+  .count-pill{
+    display:flex; align-items:center; gap:6px; flex:0 0 auto;
+    background:var(--rose-soft); border:1px solid rgba(255,77,125,.35);
+    color:var(--rose); font-family:var(--font-mono); font-size:12.5px; font-weight:600;
+    padding:7px 13px; border-radius:999px;
+  }
+
+  /* ---------- page head ---------- */
+  .page-head{
+    max-width:760px; margin:0 auto; padding:30px 20px 6px;
+  }
+  .eyebrow{
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--text-faint); display:flex; align-items:center; gap:9px; margin-bottom:12px;
+  }
+  .eyebrow::before{ content:""; width:18px; height:1px; background:var(--rose); }
+  .page-head h1{
+    font-family:var(--font-display); font-weight:600; font-size:clamp(26px,5vw,34px);
+    line-height:1.15; letter-spacing:-.01em; margin-bottom:8px;
+  }
+  .page-sub{ color:var(--text-muted); font-size:14px; }
+
+  /* ---------- savings strip (signature element) ---------- */
+  .savings-strip{
+    max-width:760px; margin:18px auto 0; padding:0 20px;
+    display:none;
+  }
+  .savings-strip.show{ display:block; animation:fadeUp .4s ease both; }
+  .savings-strip-inner{
+    display:flex; align-items:center; gap:12px;
+    border:1px solid rgba(255,184,77,.3); border-radius:var(--radius);
+    background:linear-gradient(100deg, rgba(255,184,77,.08), rgba(255,77,125,.06));
+    padding:13px 16px;
+  }
+  .savings-flame{ font-size:18px; flex:0 0 auto; }
+  .savings-text{ flex:1; min-width:0; }
+  .savings-text strong{ display:block; font-size:13.5px; font-weight:600; }
+  .savings-text span{ display:block; font-size:12px; color:var(--text-muted); margin-top:1px; }
+  .savings-amount{
+    font-family:var(--font-mono); font-size:13px; font-weight:600; color:var(--gold);
+    flex:0 0 auto; white-space:nowrap;
+  }
+
+  /* ---------- list ---------- */
+  main.container{ max-width:760px; margin:0 auto; padding:20px 20px 70px; }
+
+  .wishlist-list{ display:flex; flex-direction:column; gap:12px; }
+
+  .item-card{
+    display:flex; gap:14px; align-items:flex-start;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg);
+    padding:14px; animation:fadeUp .4s ease both;
+    transition:border-color .2s ease;
+  }
+  .item-card:hover{ border-color:#3a3a46; }
+  .item-card.removing{ animation:fadeOut .25s ease forwards; }
+
+  .item-thumb{
+    position:relative; width:84px; height:84px; flex:0 0 auto;
+    border-radius:var(--radius); overflow:hidden; background:var(--surface-2);
+  }
+  .item-thumb img{ width:100%; height:100%; object-fit:cover; }
+  .item-thumb .ph{
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    font-size:22px; color:var(--text-faint); background:var(--surface-2);
+  }
+  .thumb-discount{
+    position:absolute; bottom:0; left:0; right:0;
+    background:linear-gradient(120deg, var(--gold), var(--rose));
+    color:#1a0a10; font-family:var(--font-mono); font-size:9.5px; font-weight:700;
+    text-align:center; padding:2px 0; letter-spacing:.02em;
+  }
+
+  .item-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
+  .item-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .item-category{
+    font-family:var(--font-mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--text-faint);
+  }
+  .item-name{
+    font-size:14.5px; font-weight:600; line-height:1.3; color:var(--text);
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .item-name:hover{ color:var(--rose); }
+  .btn-remove{
+    flex:0 0 auto; width:28px; height:28px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text-faint); font-size:13px; transition:.18s ease;
+    margin-top:-2px;
+  }
+  .btn-remove:hover{ background:rgba(255,92,92,.12); color:var(--bad); }
+
+  .item-bottom{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:2px;
+  }
+  .item-price-wrap{ display:flex; align-items:baseline; gap:7px; flex-wrap:wrap; }
+  .price-old{ font-size:11.5px; color:var(--text-faint); text-decoration:line-through; }
+  .price-now{ font-family:var(--font-mono); font-size:14.5px; font-weight:600; color:var(--text); }
+  .btn-cart{
+    flex:0 0 auto; font-size:12.5px; font-weight:600; color:#fff;
+    background:linear-gradient(120deg, #7c5cff, var(--rose));
+    padding:8px 14px; border-radius:999px; transition:transform .18s ease, box-shadow .18s ease;
+    white-space:nowrap;
+  }
+  .btn-cart:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(255,77,125,.28); }
+  .btn-cart:disabled{ opacity:.55; transform:none; box-shadow:none; cursor:default; }
+
+  /* ---------- skeleton ---------- */
+  .item-card.skeleton{ pointer-events:none; }
+  .skeleton-block{
+    background:linear-gradient(110deg, var(--surface-2) 8%, #24242e 18%, var(--surface-2) 33%);
+    background-size:200% 100%; animation:shimmer 1.4s linear infinite; border-radius:8px;
+  }
+  .skeleton .item-thumb{ background:none; }
+  .skeleton .item-thumb .skeleton-block{ width:100%; height:100%; border-radius:var(--radius); }
+  .skeleton-line{ height:11px; }
+
+  /* ---------- empty state ---------- */
+  .empty-state{
+    text-align:center; padding:64px 20px 40px;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  .empty-icon{
+    width:56px; height:56px; border-radius:50%; margin-bottom:8px;
+    background:var(--surface); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+  }
+  .empty-state h2{ font-family:var(--font-display); font-size:18px; font-weight:600; }
+  .empty-state p{ color:var(--text-muted); max-width:320px; font-size:13.5px; }
+  .btn-primary{
+    margin-top:8px; padding:12px 24px; border-radius:999px;
+    background:linear-gradient(120deg, #7c5cff, var(--rose)); font-weight:600; color:#fff;
+    font-size:13.5px; transition:transform .18s ease;
+  }
+  .btn-primary:hover{ transform:translateY(-1px); }
+  .is-hidden{ display:none !important; }
+
+  /* ---------- toast ---------- */
+  .toast-container{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    display:flex; flex-direction:column; gap:8px; z-index:100; align-items:center;
+    padding:0 16px; width:100%; max-width:400px;
+  }
+  .toast{
+    background:var(--surface-2); border:1px solid var(--line); backdrop-filter:blur(14px);
+    padding:12px 18px; border-radius:12px; font-size:13px; width:100%; text-align:center;
+    opacity:0; transform:translateY(10px); transition:opacity .25s ease, transform .25s ease;
+    box-shadow:0 12px 28px rgba(0,0,0,.35);
+  }
+  .toast.show{ opacity:1; transform:translateY(0); }
+  .toast-success{ border-color:rgba(70,210,156,.4); }
+  .toast-error{ border-color:rgba(255,92,92,.4); }
+  .toast-discount{ border-color:rgba(255,184,77,.4); }
+
+  @media (max-width:480px){
+    .topbar-inner{ padding:12px 16px; }
+    .page-head{ padding:24px 16px 4px; }
+    .savings-strip{ padding:0 16px; }
+    main.container{ padding:16px 16px 60px; }
+    .item-thumb{ width:72px; height:72px; }
+    .item-name{ font-size:14px; }
+    .price-now{ font-size:13.5px; }
+    .btn-cart{ padding:7px 12px; font-size:12px; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="back-link" href="marketplace.html" aria-label="Kembali ke marketplace">←</a>
+      <span class="topbar-title">RAPI <span class="accent">STORE</span></span>
+      <div class="count-pill" aria-live="polite">♥ <span id="countNum">0</span></div>
+    </div>
+  </header>
+
+  <section class="page-head">
+    <span class="eyebrow">Wishlist</span>
+    <h1>Produk favoritmu</h1>
+    <p class="page-sub" id="pageSub">Memuat wishlist kamu...</p>
+  </section>
+
+  <div class="savings-strip" id="savingsStrip">
+    <div class="savings-strip-inner" id="savingsStripInner"></div>
+  </div>
+
+  <main class="container">
+    <div class="wishlist-list" id="wishlistList">
+      <div class="item-card skeleton">
+        <div class="item-thumb"><div class="skeleton-block"></div></div>
+        <div class="item-main">
+          <div class="skeleton-block skeleton-line" style="width:40%"></div>
+          <div class="skeleton-block skeleton-line" style="width:75%"></div>
+          <div class="skeleton-block skeleton-line" style="width:30%; margin-top:6px;"></div>
+        </div>
+      </div>
+      <div class="item-card skeleton">
+        <div class="item-thumb"><div class="skeleton-block"></div></div>
+        <div class="item-main">
+          <div class="skeleton-block skeleton-line" style="width:40%"></div>
+          <div class="skeleton-block skeleton-line" style="width:75%"></div>
+          <div class="skeleton-block skeleton-line" style="width:30%; margin-top:6px;"></div>
+        </div>
+      </div>
+      <div class="item-card skeleton">
+        <div class="item-thumb"><div class="skeleton-block"></div></div>
+        <div class="item-main">
+          <div class="skeleton-block skeleton-line" style="width:40%"></div>
+          <div class="skeleton-block skeleton-line" style="width:75%"></div>
+          <div class="skeleton-block skeleton-line" style="width:30%; margin-top:6px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state is-hidden" id="emptyState">
+      <div class="empty-icon">♡</div>
+      <h2>Belum ada yang disimpan</h2>
+      <p>Tap ikon hati di produk yang kamu suka saat menjelajah marketplace, nanti otomatis muncul di sini.</p>
+      <a class="btn-primary" href="marketplace.html">Jelajahi Marketplace</a>
+    </div>
+  </main>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ====== Logika Wishlist + Firestore ====== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+    import {
+      getAuth, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+    import {
+      getFirestore, collection, onSnapshot, doc, deleteDoc, getDoc, setDoc, increment, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+    /* =========================================================
+       KONFIGURASI FIREBASE — sama dengan marketplace.html
+    ========================================================= */
+    const firebaseConfig = {
+      apiKey: "AIzaSyBJJjcICAkbVWjrw5-zYMzcKqPGhS0nS0I",
+      authDomain: "piwstore.firebaseapp.com",
+      projectId: "piwstore",
+      storageBucket: "piwstore.firebasestorage.app",
+      messagingSenderId: "419258630997",
+      appId: "1:419258630997:web:aefc0e34cc4b7ca16d25dc",
+      measurementId: "G-M6NHQMHQV4"
+    };
+
+    /* Wishlist disimpan di subcollection: users/{uid}/wishlist/{productId}
+       Struktur dokumen (ditulis dari marketplace.html saat tombol ❤ ditekan):
+       {
+         productId: string,
+         name: string,
+         category: string,
+         image: string,
+         price: number,
+         originalPrice: number,  // opsional, hanya ada kalau produk diskon
+         addedAt: Timestamp
+       }
+    */
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let currentUser = null;
+    let currentItems = [];
+    let firstLoad = true;
+    let unsubscribeWishlist = null;
+
+    // ---------- Util ----------
+    function formatRupiah(n){
+      return "Rp" + Number(n || 0).toLocaleString("id-ID");
+    }
+
+    function escapeHtml(str){
+      return String(str ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+    }
+
+    function getTime(t){
+      if(!t) return 0;
+      if(typeof t.toMillis === "function") return t.toMillis();
+      if(typeof t === "number") return t;
+      if(t.seconds) return t.seconds * 1000;
+      return 0;
+    }
+
+    // ---------- Toast ----------
+    function showToast(message, type = "success"){
+      const container = document.getElementById("toastContainer");
+      if(!container) return;
+      const el = document.createElement("div");
+      el.className = `toast toast-${type}`;
+      el.textContent = message;
+      container.appendChild(el);
+      requestAnimationFrame(() => el.classList.add("show"));
+      setTimeout(() => {
+        el.classList.remove("show");
+        setTimeout(() => el.remove(), 300);
+      }, 3600);
+    }
+
+    // ---------- Render ----------
+    function itemTemplate(item){
+      const hasDiscount = item.originalPrice && item.originalPrice > item.price;
+      const percent = hasDiscount ? Math.round((1 - item.price / item.originalPrice) * 100) : 0;
+      const pid = encodeURIComponent(item.productId || item.docId || "");
+      const img = item.image && item.image.trim() ? escapeHtml(item.image) : "";
+
+      return `
+      <article class="item-card" data-doc="${escapeHtml(item.docId)}">
+        <a class="item-thumb" href="detail-produk.html?id=${pid}" aria-label="Lihat detail ${escapeHtml(item.name)}">
+          ${img ? `<img src="${img}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.closest('.item-thumb').innerHTML='<div class=&quot;ph&quot;>◆</div>'">` : `<div class="ph">◆</div>`}
+          ${hasDiscount ? `<span class="thumb-discount">-${percent}%</span>` : ""}
+        </a>
+        <div class="item-main">
+          <div class="item-top">
+            <div>
+              <div class="item-category">${escapeHtml(item.category || "Produk")}</div>
+              <a class="item-name" href="detail-produk.html?id=${pid}">${escapeHtml(item.name)}</a>
+            </div>
+            <button class="btn-remove" data-doc="${escapeHtml(item.docId)}" aria-label="Hapus ${escapeHtml(item.name)} dari wishlist" title="Hapus dari wishlist">✕</button>
+          </div>
+          <div class="item-bottom">
+            <div class="item-price-wrap">
+              ${hasDiscount ? `<span class="price-old">${formatRupiah(item.originalPrice)}</span>` : ""}
+              <span class="price-now">${formatRupiah(item.price)}</span>
+            </div>
+            <button class="btn-cart" data-doc="${escapeHtml(item.docId)}">+ Keranjang</button>
+          </div>
+        </div>
+      </article>`;
+    }
+
+    function updateCount(n){
+      const el = document.getElementById("countNum");
+      if(el) el.textContent = n;
+      document.title = n > 0 ? `Wishlist (${n}) · RAPI STORE` : "Wishlist · RAPI STORE";
+    }
+
+    function updateSavingsStrip(items){
+      const strip = document.getElementById("savingsStrip");
+      const inner = document.getElementById("savingsStripInner");
+      if(!strip || !inner) return;
+      const discounted = items.filter(i => i.originalPrice && i.originalPrice > i.price);
+      if(discounted.length === 0){
+        strip.classList.remove("show");
+        inner.innerHTML = "";
+        return;
+      }
+      const totalSavings = discounted.reduce((sum, i) => sum + (i.originalPrice - i.price), 0);
+      inner.innerHTML = `
+        <span class="savings-flame">🔥</span>
+        <div class="savings-text">
+          <strong>${discounted.length} produk sedang diskon</strong>
+          <span>Checkout sekarang sebelum harganya naik lagi</span>
+        </div>
+        <span class="savings-amount">Hemat ${formatRupiah(totalSavings)}</span>`;
+      strip.classList.add("show");
+    }
+
+    function renderAll(items){
+      currentItems = items;
+      const list = document.getElementById("wishlistList");
+      const empty = document.getElementById("emptyState");
+      const sub = document.getElementById("pageSub");
+
+      updateCount(items.length);
+      updateSavingsStrip(items);
+
+      if(sub){
+        sub.textContent = items.length > 0
+          ? `${items.length} produk tersimpan, siap di-checkout kapan saja`
+          : "Yuk mulai kumpulin produk favoritmu";
+      }
+
+      if(items.length === 0){
+        list.classList.add("is-hidden");
+        empty.classList.remove("is-hidden");
+        return;
+      }
+      empty.classList.add("is-hidden");
+      list.classList.remove("is-hidden");
+      const sorted = [...items].sort((a, b) => getTime(b.addedAt) - getTime(a.addedAt));
+      list.innerHTML = sorted.map(itemTemplate).join("");
+    }
+
+    // ---------- Hapus dari wishlist ----------
+    function removeFromWishlist(docId, cardEl){
+      if(cardEl) cardEl.classList.add("removing");
+      setTimeout(async () => {
+        try {
+          await deleteDoc(doc(db, "users", currentUser.uid, "wishlist", docId));
+          showToast("Dihapus dari wishlist", "success");
+          // grid otomatis update lewat onSnapshot
+        } catch (err) {
+          console.error("[RAPI STORE] Gagal hapus wishlist:", err);
+          if(cardEl) cardEl.classList.remove("removing");
+          showToast("Gagal menghapus, coba lagi", "error");
+        }
+      }, 220);
+    }
+
+    // ---------- Tambah ke keranjang ----------
+    async function addToCart(item, btn){
+      const original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "...";
+      try{
+        const ref = doc(db, "users", currentUser.uid, "cart", item.docId);
+        const existing = await getDoc(ref);
+        if (existing.exists()){
+          await setDoc(ref, { quantity: increment(1), updatedAt: serverTimestamp() }, { merge:true });
+        } else {
+          await setDoc(ref, {
+            productId: item.productId || item.docId,
+            name: item.name || "",
+            price: item.price || 0,
+            image: item.image || "",
+            category: item.category || "",
+            quantity: 1,
+            addedAt: serverTimestamp()
+          });
+        }
+        btn.textContent = "✓ Masuk";
+        showToast(`${item.name} ditambahkan ke keranjang`, "success");
+      }catch(err){
+        console.error("[RAPI STORE] Gagal menambah ke keranjang:", err);
+        showToast("Gagal menambah ke keranjang", "error");
+        btn.textContent = original;
+      }finally{
+        setTimeout(()=>{ btn.disabled = false; btn.textContent = original; }, 1100);
+      }
+    }
+
+    // ---------- Event delegation ----------
+    document.getElementById("wishlistList").addEventListener("click", (e) => {
+      const removeBtn = e.target.closest(".btn-remove");
+      if(removeBtn){
+        e.preventDefault();
+        removeFromWishlist(removeBtn.dataset.doc, removeBtn.closest(".item-card"));
+        return;
+      }
+      const cartBtn = e.target.closest(".btn-cart");
+      if(cartBtn){
+        e.preventDefault();
+        const item = currentItems.find(i => i.docId === cartBtn.dataset.doc);
+        if(item && !cartBtn.disabled) addToCart(item, cartBtn);
+      }
+    });
+
+    // ---------- Auth guard + init ----------
+    onAuthStateChanged(auth, (user) => {
+      if(!user){
+        window.location.href = "login.html";
+        return;
+      }
+      currentUser = user;
+      initWishlistListener();
+    });
+
+    function initWishlistListener(){
+      if(unsubscribeWishlist) unsubscribeWishlist();
+      const col = collection(db, "users", currentUser.uid, "wishlist");
+      unsubscribeWishlist = onSnapshot(col, (snap) => {
+        const items = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
+        renderAll(items);
+        if(firstLoad){
+          firstLoad = false;
+          const discounted = items.filter(i => i.originalPrice && i.originalPrice > i.price);
+          if(discounted.length > 0){
+            showToast(`🔥 ${discounted.length} produk wishlist kamu sedang diskon!`, "discount");
+          }
+        }
+      }, (err) => {
+        console.error("[RAPI STORE] Gagal memuat wishlist dari Firestore:", err);
+        showToast("Gagal memuat wishlist, coba muat ulang halaman", "error");
+      });
+    }
+  </script>
+
+</body>
+</html>
