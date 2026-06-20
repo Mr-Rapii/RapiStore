@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Level — RAPI STORE</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #06080F;
+    --surface:  #0C1120;
+    --surface2: #101828;
+    --text:     #E6EAF4;
+    --muted:    #6B7A96;
+    --radius:   14px;
+    --transition: .22s cubic-bezier(.4,0,.2,1);
+
+    /* level colors */
+    --bronze:   #CD7F32;
+    --silver:   #A8B8CC;
+    --gold:     #F0A500;
+    --platinum: #E84040;
+    --diamond:  #5EDFFF;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(22px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes shimmer {
+    0%   { background-position:-200% center; }
+    100% { background-position: 200% center; }
+  }
+  @keyframes spin {
+    to { transform:rotate(360deg); }
+  }
+  @keyframes float {
+    0%,100% { transform:translateY(0); }
+    50%     { transform:translateY(-7px); }
+  }
+  @keyframes bar-fill {
+    from { width:0%; }
+  }
+  @keyframes pulse-glow {
+    0%,100% { opacity:.6; }
+    50%     { opacity:1; }
+  }
+  @keyframes particle {
+    0%   { transform:translateY(0) scale(1); opacity:1; }
+    100% { transform:translateY(-60px) scale(0); opacity:0; }
+  }
+
+  /* ── Nav ── */
+  nav {
+    position:sticky; top:0; z-index:100;
+    background:rgba(6,8,15,.88);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    border-bottom:1px solid rgba(255,255,255,.06);
+    padding:0 20px;
+  }
+  .nav-inner {
+    max-width:740px; margin:0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    height:56px;
+  }
+  .nav-brand {
+    font-family:'Poppins',sans-serif; font-weight:800; font-size:18px;
+    background:linear-gradient(90deg,#F0A500,#FFD166,#F0A500);
+    background-size:200% auto;
+    -webkit-background-clip:text; background-clip:text;
+    -webkit-text-fill-color:transparent;
+    animation:shimmer 3s linear infinite;
+    text-decoration:none;
+  }
+  .nav-links { display:flex; gap:4px; }
+  .nav-links a {
+    color:var(--muted); font-size:13px; font-weight:500;
+    text-decoration:none; padding:6px 14px; border-radius:8px;
+    transition:var(--transition);
+  }
+  .nav-links a:hover { color:var(--text); background:var(--surface2); }
+
+  /* ── Page ── */
+  .page { max-width:740px; margin:0 auto; padding:28px 16px 80px; }
+
+  /* ── Hero card ── */
+  .hero-card {
+    position:relative; overflow:hidden;
+    border-radius:22px; padding:32px 24px 28px;
+    margin-bottom:28px;
+    animation:fadeUp .5s ease both;
+    border:1.5px solid rgba(255,255,255,.07);
+  }
+  .hero-card::before {
+    content:'';
+    position:absolute; inset:0;
+    background:var(--level-grad, linear-gradient(135deg,#1a0e00,#0C1120));
+    z-index:0;
+  }
+  .hero-card::after {
+    content:'';
+    position:absolute; top:-60px; right:-60px;
+    width:220px; height:220px; border-radius:50%;
+    background:radial-gradient(circle, var(--level-glow,rgba(240,165,0,.15)) 0%, transparent 70%);
+    z-index:0;
+  }
+  .hero-card > * { position:relative; z-index:1; }
+
+  .hero-top { display:flex; align-items:center; gap:18px; margin-bottom:24px; }
+  .level-orb {
+    flex-shrink:0;
+    width:70px; height:70px; border-radius:50%;
+    display:grid; place-items:center;
+    font-size:32px;
+    background:var(--level-orb, #1a1a2e);
+    border:2px solid var(--level-color, #F0A500);
+    box-shadow:0 0 24px var(--level-shadow, rgba(240,165,0,.3));
+    animation:float 3.5s ease-in-out infinite;
+  }
+  .hero-info { flex:1; min-width:0; }
+  .hero-info .label {
+    font-size:11px; font-weight:700; letter-spacing:2px;
+    text-transform:uppercase; color:var(--level-color,#F0A500);
+    margin-bottom:3px;
+  }
+  .hero-info h1 {
+    font-family:'Poppins',sans-serif; font-weight:900;
+    font-size:28px; line-height:1.1;
+    color:var(--level-color,#F0A500);
+    text-shadow:0 0 20px var(--level-shadow,rgba(240,165,0,.4));
+  }
+  .hero-info p { font-size:13px; color:var(--muted); margin-top:2px; }
+
+  /* progress */
+  .progress-wrap { margin-bottom:6px; }
+  .progress-labels {
+    display:flex; justify-content:space-between;
+    font-size:12px; color:var(--muted); margin-bottom:8px;
+  }
+  .progress-labels strong { color:var(--text); }
+  .progress-track {
+    height:10px; border-radius:100px;
+    background:rgba(255,255,255,.08);
+    overflow:hidden;
+  }
+  .progress-bar {
+    height:100%; border-radius:100px;
+    background:linear-gradient(90deg, var(--level-color,#F0A500), var(--level-light,#FFD166));
+    width:0%;
+    animation:bar-fill .9s .3s cubic-bezier(.4,0,.2,1) forwards;
+    box-shadow:0 0 10px var(--level-shadow,rgba(240,165,0,.5));
+  }
+  .progress-hint {
+    font-size:12px; color:var(--muted); margin-top:6px; text-align:right;
+  }
+  .progress-hint span { color:var(--level-color,#F0A500); font-weight:600; }
+
+  /* ── Section label ── */
+  .section-label {
+    font-family:'Poppins',sans-serif; font-weight:700;
+    font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--muted); margin-bottom:14px;
+  }
+
+  /* ── Level ladder ── */
+  .ladder-section { margin-bottom:32px; animation:fadeUp .5s .1s ease both; }
+  .ladder { display:flex; flex-direction:column; gap:10px; }
+
+  .ladder-item {
+    display:flex; align-items:center; gap:14px;
+    background:var(--surface); border-radius:14px;
+    padding:14px 18px;
+    border:1.5px solid rgba(255,255,255,.05);
+    transition:var(--transition);
+    position:relative; overflow:hidden;
+  }
+  .ladder-item.current {
+    border-color:var(--lv-color);
+    background:var(--lv-bg);
+    box-shadow:0 4px 24px var(--lv-shadow);
+  }
+  .ladder-item.done {
+    opacity:.55;
+  }
+  .ladder-item.locked {
+    opacity:.4;
+  }
+
+  .lv-icon {
+    flex-shrink:0; width:44px; height:44px; border-radius:12px;
+    display:grid; place-items:center; font-size:22px;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+  }
+  .ladder-item.current .lv-icon {
+    background:var(--lv-icon-bg);
+    border-color:var(--lv-color);
+    box-shadow:0 0 14px var(--lv-shadow);
+  }
+  .lv-info { flex:1; min-width:0; }
+  .lv-info strong {
+    display:block; font-family:'Poppins',sans-serif;
+    font-weight:700; font-size:15px;
+    color:var(--lv-color, var(--text));
+  }
+  .lv-info span { font-size:12px; color:var(--muted); }
+
+  .lv-badge {
+    flex-shrink:0; padding:4px 12px; border-radius:100px;
+    font-size:11px; font-weight:700; letter-spacing:.5px;
+    text-transform:uppercase;
+  }
+  .badge-current { background:var(--lv-color); color:#000; }
+  .badge-done    { background:rgba(255,255,255,.08); color:var(--muted); }
+  .badge-locked  { background:rgba(255,255,255,.05); color:var(--muted); border:1px solid rgba(255,255,255,.08); }
+
+  /* streak line */
+  .ladder-item:not(:last-child)::after {
+    content:'';
+    position:absolute; left:29px; bottom:-10px;
+    width:2px; height:10px;
+    background:rgba(255,255,255,.08);
+    z-index:2;
+  }
+
+  /* ── Badges section ── */
+  .badges-section { margin-bottom:28px; animation:fadeUp .5s .2s ease both; }
+  .badge-grid {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
+  }
+  @media(max-width:400px) { .badge-grid { grid-template-columns:repeat(2,1fr); } }
+
+  .badge-card {
+    background:var(--surface); border-radius:14px;
+    border:1.5px solid rgba(255,255,255,.06);
+    padding:16px 12px; text-align:center;
+    transition:var(--transition);
+    position:relative; overflow:hidden;
+  }
+  .badge-card.earned {
+    border-color:var(--bc, rgba(240,165,0,.35));
+    background:var(--bb, rgba(240,165,0,.05));
+  }
+  .badge-card:hover { transform:translateY(-2px); }
+  .badge-card .b-icon { font-size:28px; margin-bottom:6px; display:block; }
+  .badge-card .b-name {
+    font-family:'Poppins',sans-serif; font-weight:700;
+    font-size:12px; display:block; margin-bottom:2px;
+  }
+  .badge-card .b-desc { font-size:11px; color:var(--muted); }
+  .badge-card.locked-b { opacity:.35; filter:grayscale(1); }
+
+  /* earned sparkle */
+  .badge-card.earned::before {
+    content:'✓';
+    position:absolute; top:8px; right:10px;
+    font-size:10px; font-weight:700;
+    color:var(--bc,#F0A500);
+  }
+
+  /* ── Stats row ── */
+  .stats-section { animation:fadeUp .5s .3s ease both; margin-bottom:28px; }
+  .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .stat-card {
+    background:var(--surface); border-radius:14px;
+    border:1px solid rgba(255,255,255,.05);
+    padding:16px 14px; text-align:center;
+  }
+  .stat-card .s-val {
+    font-family:'Poppins',sans-serif; font-weight:800;
+    font-size:22px; color:var(--text); display:block;
+  }
+  .stat-card .s-label { font-size:11px; color:var(--muted); }
+
+  /* ── Loading skeleton ── */
+  .skeleton {
+    background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);
+    background-size:200% 100%;
+    animation:shimmer 1.4s linear infinite;
+    border-radius:8px; height:16px;
+  }
+
+  /* ── Spinner ── */
+  .spin-wrap { display:flex; justify-content:center; padding:40px 0; }
+  .spinner-ring {
+    width:36px; height:36px; border-radius:50%;
+    border:3px solid rgba(255,255,255,.08);
+    border-top-color:var(--gold);
+    animation:spin .7s linear infinite;
+  }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-brand" href="#">✦ RAPI STORE</a>
+    <div class="nav-links">
+      <a href="dashboard.html#dashboard">Dashboard</a>
+      <a href="profil.html#profil">Profil</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page" id="pageContent">
+  <div class="spin-wrap"><div class="spinner-ring"></div></div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp }         from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyBJJjcICAkbVWjrw5-zYMzcKqPGhS0nS0I",
+    authDomain:        "piwstore.firebaseapp.com",
+    projectId:         "piwstore",
+    storageBucket:     "piwstore.firebasestorage.app",
+    messagingSenderId: "419258630997",
+    appId:             "1:419258630997:web:aefc0e34cc4b7ca16d25dc",
+    measurementId:     "G-M6NHQMHQV4"
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
+  const auth = getAuth(app);
+
+  /* ── Level config ── */
+  const LEVELS = [
+    {
+      key:'bronze', name:'Bronze', emoji:'🟢',
+      min:0,  max:5,
+      color:'#CD7F32', light:'#E8A265', shadow:'rgba(205,127,50,.35)',
+      grad:'linear-gradient(135deg,#1a0d00 0%,#0C1120 100%)',
+      glow:'rgba(205,127,50,.12)',
+      iconBg:'rgba(205,127,50,.15)',
+      orbBg:'#1a0d00',
+      desc:'Anggota baru RAPI STORE'
+    },
+    {
+      key:'silver', name:'Silver', emoji:'🟣',
+      min:5,  max:20,
+      color:'#A8B8CC', light:'#C8D8EC', shadow:'rgba(168,184,204,.35)',
+      grad:'linear-gradient(135deg,#0a0e18 0%,#0C1120 100%)',
+      glow:'rgba(168,184,204,.1)',
+      iconBg:'rgba(168,184,204,.12)',
+      orbBg:'#0a0e18',
+      desc:'Pelanggan setia RAPI STORE'
+    },
+    {
+      key:'gold', name:'Gold', emoji:'🟡',
+      min:20, max:50,
+      color:'#F0A500', light:'#FFD166', shadow:'rgba(240,165,0,.35)',
+      grad:'linear-gradient(135deg,#1a0e00 0%,#0C1120 100%)',
+      glow:'rgba(240,165,0,.12)',
+      iconBg:'rgba(240,165,0,.15)',
+      orbBg:'#1a0e00',
+      desc:'Pelanggan aktif terpercaya'
+    },
+    {
+      key:'platinum', name:'Platinum', emoji:'🔴',
+      min:50, max:100,
+      color:'#E84040', light:'#FF7070', shadow:'rgba(232,64,64,.35)',
+      grad:'linear-gradient(135deg,#1a0000 0%,#0C1120 100%)',
+      glow:'rgba(232,64,64,.1)',
+      iconBg:'rgba(232,64,64,.15)',
+      orbBg:'#1a0000',
+      desc:'Pelanggan elite RAPI STORE'
+    },
+    {
+      key:'diamond', name:'Diamond', emoji:'👑',
+      min:100, max:Infinity,
+      color:'#5EDFFF', light:'#A0EFFF', shadow:'rgba(94,223,255,.35)',
+      grad:'linear-gradient(135deg,#00101a 0%,#0C1120 100%)',
+      glow:'rgba(94,223,255,.12)',
+      iconBg:'rgba(94,223,255,.15)',
+      orbBg:'#00101a',
+      desc:'Legenda RAPI STORE'
+    }
+  ];
+
+  /* ── Badge config ── */
+  const BADGES = [
+    { key:'first_buy',  icon:'🛒', name:'Pembeli Pertama', desc:'Selesaikan 1 transaksi', req: t => t >= 1,  bc:'rgba(205,127,50,.5)',  bb:'rgba(205,127,50,.08)' },
+    { key:'silver_up',  icon:'⭐', name:'Naik Level',       desc:'Raih level Silver',     req: t => t >= 5,  bc:'rgba(168,184,204,.5)', bb:'rgba(168,184,204,.08)' },
+    { key:'ten',        icon:'🔥', name:'10 Transaksi',     desc:'Selesaikan 10 order',   req: t => t >= 10, bc:'rgba(240,165,0,.5)',   bb:'rgba(240,165,0,.08)' },
+    { key:'gold_up',    icon:'🏆', name:'Gold Member',      desc:'Raih level Gold',       req: t => t >= 20, bc:'rgba(240,165,0,.5)',   bb:'rgba(240,165,0,.08)' },
+    { key:'fifty',      icon:'💎', name:'50 Transaksi',     desc:'Selesaikan 50 order',   req: t => t >= 50, bc:'rgba(94,223,255,.5)',  bb:'rgba(94,223,255,.08)' },
+    { key:'diamond_up', icon:'👑', name:'Diamond Elite',    desc:'Raih level Diamond',    req: t => t >= 100, bc:'rgba(94,223,255,.5)', bb:'rgba(94,223,255,.08)' },
+  ];
+
+  function getLevel(trx) {
+    for (let i = LEVELS.length - 1; i >= 0; i--) {
+      if (trx >= LEVELS[i].min) return { lv: LEVELS[i], idx: i };
+    }
+    return { lv: LEVELS[0], idx: 0 };
+  }
+
+  function render(trx, displayName) {
+    const { lv, idx } = getLevel(trx);
+    const isMax  = idx === LEVELS.length - 1;
+    const next   = isMax ? null : LEVELS[idx + 1];
+    const pct    = isMax ? 100
+                  : Math.min(100, Math.round(((trx - lv.min) / (next.min - lv.min)) * 100));
+    const remain = isMax ? 0 : (next.min - trx);
+
+    /* ── Hero ── */
+    const heroHTML = `
+    <div class="hero-card" style="
+      --level-grad:${lv.grad};
+      --level-glow:${lv.glow};
+      --level-color:${lv.color};
+      --level-light:${lv.light};
+      --level-shadow:${lv.shadow};
+      --level-orb:${lv.orbBg};
+    ">
+      <div class="hero-top">
+        <div class="level-orb">${lv.emoji}</div>
+        <div class="hero-info">
+          <div class="label">Level Saat Ini</div>
+          <h1>${lv.name}</h1>
+          <p>${lv.desc}</p>
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-labels">
+          <span>${lv.name} <strong>${trx} transaksi</strong></span>
+          <span>${isMax ? '🏆 MAX' : next.name + ' (' + next.min + ')'}</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-bar" style="width:${pct}%"></div>
+        </div>
+        <div class="progress-hint">
+          ${isMax
+            ? '<span>Kamu sudah mencapai level tertinggi! 👑</span>'
+            : `<span>${remain} transaksi</span> lagi menuju ${next.name}`}
+        </div>
+      </div>
+    </div>`;
+
+    /* ── Stats ── */
+    const statsHTML = `
+    <div class="stats-section">
+      <p class="section-label">Statistik</p>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="s-val">${trx}</span>
+          <span class="s-label">Total Transaksi</span>
+        </div>
+        <div class="stat-card">
+          <span class="s-val">${BADGES.filter(b => b.req(trx)).length}</span>
+          <span class="s-label">Badge Diraih</span>
+        </div>
+        <div class="stat-card">
+          <span class="s-val">${isMax ? '—' : remain}</span>
+          <span class="s-label">${isMax ? 'Level Max!' : 'Menuju ' + next.name}</span>
+        </div>
+      </div>
+    </div>`;
+
+    /* ── Ladder ── */
+    const ladderItems = LEVELS.map((l, i) => {
+      const isCurrent = i === idx;
+      const isDone    = i < idx;
+      const isLocked  = i > idx;
+      const statusClass = isCurrent ? 'current' : isDone ? 'done' : 'locked';
+      const badgeLabel  = isCurrent ? `<span class="lv-badge badge-current" style="background:${l.color};color:#000">Levelmu</span>`
+                        : isDone    ? `<span class="lv-badge badge-done">✓ Selesai</span>`
+                        :             `<span class="lv-badge badge-locked">🔒 Terkunci</span>`;
+      const range = l.max === Infinity ? `${l.min}+ transaksi` : `${l.min}–${l.max} transaksi`;
+      return `
+      <div class="ladder-item ${statusClass}" style="
+        --lv-color:${l.color};
+        --lv-bg:${l.glow};
+        --lv-shadow:${l.shadow};
+        --lv-icon-bg:${l.iconBg};
+      ">
+        <div class="lv-icon">${l.emoji}</div>
+        <div class="lv-info">
+          <strong>${l.name}</strong>
+          <span>${range} · ${l.desc}</span>
+        </div>
+        ${badgeLabel}
+      </div>`;
+    }).join('');
+
+    const ladderHTML = `
+    <div class="ladder-section">
+      <p class="section-label">Semua Level</p>
+      <div class="ladder">${ladderItems}</div>
+    </div>`;
+
+    /* ── Badges ── */
+    const badgeItems = BADGES.map(b => {
+      const earned = b.req(trx);
+      return `
+      <div class="badge-card ${earned ? 'earned' : 'locked-b'}" style="--bc:${b.bc};--bb:${b.bb};">
+        <span class="b-icon">${b.icon}</span>
+        <span class="b-name">${b.name}</span>
+        <span class="b-desc">${b.desc}</span>
+      </div>`;
+    }).join('');
+
+    const badgesHTML = `
+    <div class="badges-section">
+      <p class="section-label">Badge · ${BADGES.filter(b=>b.req(trx)).length}/${BADGES.length} diraih</p>
+      <div class="badge-grid">${badgeItems}</div>
+    </div>`;
+
+    document.getElementById('pageContent').innerHTML =
+      heroHTML + statsHTML + ladderHTML + badgesHTML;
+  }
+
+  /* ── Auth & Firestore ── */
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      document.getElementById('pageContent').innerHTML = `
+        <div style="text-align:center;padding:60px 20px;color:var(--muted)">
+          <div style="font-size:40px;margin-bottom:12px">🔒</div>
+          <p style="font-family:Poppins;font-weight:700;font-size:16px;color:var(--text)">Belum Login</p>
+          <p style="font-size:13px;margin-top:4px">Silakan login untuk melihat level kamu.</p>
+        </div>`;
+      return;
+    }
+    try {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      const data = snap.exists() ? snap.data() : {};
+      // Field bisa: totalTransactions, transactionCount, trxCount — sesuaikan
+      const trx  = data.totalTransactions ?? data.transactionCount ?? data.trxCount ?? 0;
+      const name = data.displayName || user.displayName || 'User';
+      render(trx, name);
+    } catch(e) {
+      console.error(e);
+      document.getElementById('pageContent').innerHTML = `
+        <div style="text-align:center;padding:60px 20px;color:var(--muted)">
+          <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+          <p style="font-family:Poppins;font-weight:700;font-size:16px;color:var(--text)">Gagal memuat data</p>
+          <p style="font-size:13px;margin-top:4px">${e.message}</p>
+        </div>`;
+    }
+  });
+</script>
+</body>
+</html>
