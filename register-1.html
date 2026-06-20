@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daftar — RAPI STORE</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg: #0a0e14;
+    --surface: #0f1620;
+    --surface-2: #121a26;
+    --line: #1c2630;
+    --cyan: #22d3ee;
+    --cyan-dim: #0d3b42;
+    --gold: #d4af37;
+    --gold-soft: #e8cf7a;
+    --text: #f5f0e6;
+    --text-dim: #8a95a3;
+    --danger: #ef6f6f;
+    --good: #7fe0c4;
+    --radius: 14px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  a{ color: inherit; text-decoration: none; }
+
+  /* ---------- background ambience ---------- */
+  .bg-grid{
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(34,211,238,0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(34,211,238,0.045) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow{
+    position: fixed;
+    width: 640px;
+    height: 640px;
+    border-radius: 50%;
+    filter: blur(10px);
+    opacity: 0.16;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-cyan{ background: radial-gradient(circle, var(--cyan), transparent 70%); top: -220px; left: -180px; }
+  .glow-gold{ background: radial-gradient(circle, var(--gold), transparent 70%); bottom: -260px; right: -200px; opacity: 0.10; }
+
+  /* ---------- layout ---------- */
+  .shell{
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .brand-pane{ display: none; }
+
+  .form-pane{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+  }
+
+  @media (min-width: 980px){
+    .shell{ grid-template-columns: 1.05fr 1fr; }
+    .brand-pane{
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 64px 56px;
+      border-right: 1px solid var(--line);
+    }
+  }
+
+  /* ---------- brand pane ---------- */
+  .brand-top{ display:flex; align-items:center; gap: 12px; }
+
+  .mark{
+    width: 38px; height: 38px;
+    border-radius: 9px;
+    background: linear-gradient(140deg, var(--cyan-dim), var(--surface-2));
+    border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .mark svg{ width: 18px; height: 18px; }
+
+  .brand-name{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.02em;
+  }
+  .brand-name .accent{ color: var(--gold-soft); }
+
+  .brand-mid{ max-width: 460px; }
+
+  .eyebrow{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin: 0 0 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before{
+    content: '';
+    width: 22px; height: 1px;
+    background: var(--cyan);
+    display: inline-block;
+  }
+
+  .headline{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: clamp(28px, 3.4vw, 40px);
+    line-height: 1.15;
+    margin: 0 0 16px;
+  }
+  .headline .accent{ color: var(--gold-soft); }
+
+  .sub{
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.65;
+    margin: 0;
+  }
+
+  .checklist{
+    margin-top: 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .checklist-item{
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    font-size: 13.5px;
+    color: var(--text-dim);
+  }
+  .checklist-item svg{
+    width: 16px; height: 16px;
+    color: var(--cyan);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .checklist-item b{ color: var(--text); font-weight: 600; }
+
+  .brand-bottom{
+    font-size: 13px;
+    color: var(--text-dim);
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+  }
+
+  /* ---------- form card ---------- */
+  .card-wrap{ width: 100%; max-width: 420px; }
+
+  .mobile-brand{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+  @media (min-width: 980px){ .mobile-brand{ display: none; } }
+
+  .card{
+    position: relative;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 36px 30px;
+    border: 1px solid var(--line);
+    isolation: isolate;
+  }
+
+  .card::before{
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, var(--cyan) 0%, transparent 28%, transparent 72%, var(--gold) 100%);
+    opacity: 0.55;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .card-head{ margin-bottom: 26px; }
+  .card-title{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 24px;
+    margin: 0 0 6px;
+  }
+  .card-desc{
+    font-size: 14px;
+    color: var(--text-dim);
+    margin: 0;
+  }
+
+  .field{ margin-bottom: 16px; }
+  .field label{
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text-dim);
+    margin-bottom: 7px;
+  }
+
+  .input-wrap{ position: relative; }
+  .input-wrap svg.leading-icon{
+    position: absolute;
+    left: 13px; top: 50%;
+    transform: translateY(-50%);
+    width: 16px; height: 16px;
+    color: var(--text-dim);
+    pointer-events: none;
+  }
+
+  input[type="email"], input[type="password"], input[type="text"]{
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 12px 14px 12px 38px;
+    font-size: 14.5px;
+    color: var(--text);
+    font-family: inherit;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  input::placeholder{ color: #57636f; }
+
+  input:focus{
+    outline: none;
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px rgba(34,211,238,0.14);
+  }
+
+  input.field-error{ border-color: var(--danger); }
+  input.field-good{ border-color: var(--good); }
+
+  .toggle-pw{
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+  }
+  .toggle-pw:hover{ color: var(--cyan); }
+  .toggle-pw svg{ width: 16px; height: 16px; }
+
+  /* password strength meter */
+  .pw-meter{
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .pw-meter span{
+    height: 4px;
+    flex: 1;
+    border-radius: 2px;
+    background: var(--line);
+    transition: background 0.2s ease;
+  }
+  .pw-hint{
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+  .pw-hint.error{ color: var(--danger); }
+  .pw-hint.good{ color: var(--good); }
+
+  .match-hint{
+    font-size: 12px;
+    margin-top: 6px;
+    color: var(--text-dim);
+    display: none;
+  }
+  .match-hint.show{ display: block; }
+  .match-hint.error{ color: var(--danger); }
+  .match-hint.good{ color: var(--good); }
+
+  .terms-row{
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin: 18px 0 22px;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .terms-row input{
+    width: 14px; height: 14px;
+    accent-color: var(--cyan);
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+  .terms-row a{ color: var(--gold-soft); font-weight: 600; }
+  .terms-row a:hover{ color: var(--cyan); }
+
+  .btn-primary{
+    width: 100%;
+    background: linear-gradient(135deg, var(--cyan) 0%, #0ea5b8 100%);
+    color: #04161a;
+    border: none;
+    border-radius: 9px;
+    padding: 13px 0;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-primary:hover{
+    box-shadow: 0 6px 22px rgba(34,211,238,0.25);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active{ transform: translateY(0); }
+  .btn-primary:disabled{ opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .spinner{
+    width: 15px; height: 15px;
+    border: 2px solid rgba(4,22,26,0.3);
+    border-top-color: #04161a;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  .btn-primary.loading .spinner{ display: inline-block; }
+  .btn-primary.loading .btn-label{ display: none; }
+
+  .switch-line{
+    text-align: center;
+    margin-top: 24px;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .switch-line a{ color: var(--gold-soft); font-weight: 600; }
+  .switch-line a:hover{ color: var(--cyan); }
+
+  .alert{
+    display: none;
+    align-items: flex-start;
+    gap: 9px;
+    background: rgba(239,111,111,0.08);
+    border: 1px solid rgba(239,111,111,0.35);
+    color: #f3a6a6;
+    border-radius: 9px;
+    padding: 11px 13px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 18px;
+  }
+  .alert.show{ display: flex; }
+  .alert svg{ width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  .footnote{
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 22px;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="glow glow-cyan"></div>
+<div class="glow glow-gold"></div>
+
+<div class="shell">
+
+  <!-- Brand pane (desktop only) -->
+  <aside class="brand-pane">
+    <div class="brand-top">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l9-6 9 6-9 6-9-6z" stroke="#22d3ee"/><path d="M3 9v6l9 6 9-6V9" stroke="#d4af37"/></svg>
+      </div>
+      <span class="brand-name">RAPI <span class="accent">STORE</span></span>
+    </div>
+
+    <div class="brand-mid">
+      <p class="eyebrow">Akun baru</p>
+      <h1 class="headline">Satu akun untuk semua transaksi <span class="accent">digitalmu</span>.</h1>
+      <p class="sub">Daftar sekarang dan langsung masuk ke dashboard — pantau pesanan, riwayat, dan status layanan dalam satu tampilan.</p>
+
+      <div class="checklist">
+        <div class="checklist-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+          <span><b>Gratis</b> dan tanpa biaya pendaftaran.</span>
+        </div>
+        <div class="checklist-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+          <span>Langsung <b>masuk otomatis</b> setelah daftar, tanpa login ulang.</span>
+        </div>
+        <div class="checklist-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+          <span>Data akun <b>terenkripsi</b> dan tersinkron lewat Firebase.</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="brand-bottom">&copy; <span id="year"></span> RAPI STORE. Seluruh data terenkripsi dan tersinkron via Firebase.</p>
+  </aside>
+
+  <!-- Form pane -->
+  <main class="form-pane">
+    <div class="card-wrap">
+
+      <div class="mobile-brand">
+        <div class="mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l9-6 9 6-9 6-9-6z" stroke="#22d3ee"/><path d="M3 9v6l9 6 9-6V9" stroke="#d4af37"/></svg>
+        </div>
+        <span class="brand-name">RAPI <span class="accent">STORE</span></span>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2 class="card-title">Buat akun baru</h2>
+          <p class="card-desc">Lengkapi data di bawah untuk mulai.</p>
+        </div>
+
+        <div class="alert" id="errorBox">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+          <span id="errorText">Terjadi kesalahan.</span>
+        </div>
+
+        <form id="registerForm" novalidate>
+          <div class="field">
+            <label for="name">Nama lengkap</label>
+            <div class="input-wrap">
+              <svg class="leading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
+              <input type="text" id="name" placeholder="Nama kamu" autocomplete="name" required>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <div class="input-wrap">
+              <svg class="leading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18v12H3V6z"/><path d="M3 7l9 6 9-6"/></svg>
+              <input type="email" id="email" placeholder="nama@email.com" autocomplete="email" required>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="password">Kata sandi</label>
+            <div class="input-wrap">
+              <svg class="leading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              <input type="password" id="password" placeholder="Minimal 6 karakter" autocomplete="new-password" required minlength="6">
+              <button type="button" class="toggle-pw" data-target="password" aria-label="Tampilkan kata sandi">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="pw-meter" id="pwMeter">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="pw-hint" id="pwHint">Minimal 6 karakter.</div>
+          </div>
+
+          <div class="field">
+            <label for="confirm">Konfirmasi kata sandi</label>
+            <div class="input-wrap">
+              <svg class="leading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              <input type="password" id="confirm" placeholder="Ulangi kata sandi" autocomplete="new-password" required>
+              <button type="button" class="toggle-pw" data-target="confirm" aria-label="Tampilkan kata sandi">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="match-hint" id="matchHint">Kata sandi cocok.</div>
+          </div>
+
+          <label class="terms-row">
+            <input type="checkbox" id="terms" required>
+            <span>Saya menyetujui <a href="#">Ketentuan Layanan</a> dan <a href="#">Kebijakan Privasi</a> RAPI STORE.</span>
+          </label>
+
+          <button type="submit" class="btn-primary" id="submitBtn">
+            <span class="btn-label">Daftar</span>
+            <span class="spinner"></span>
+          </button>
+        </form>
+
+        <p class="switch-line">Sudah punya akun? <a href="index.html#login">Masuk di sini</a></p>
+      </div>
+
+      <p class="footnote">Dengan mendaftar, kamu menyetujui Ketentuan Layanan & Kebijakan Privasi RAPI STORE.</p>
+    </div>
+  </main>
+
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    updateProfile
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBJJjcICAkbVWjrw5-zYMzcKqPGhS0nS0I",
+    authDomain: "piwstore.firebaseapp.com",
+    projectId: "piwstore"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  const form = document.getElementById('registerForm');
+  const nameInput = document.getElementById('name');
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
+  const confirmInput = document.getElementById('confirm');
+  const termsInput = document.getElementById('terms');
+  const submitBtn = document.getElementById('submitBtn');
+  const errorBox = document.getElementById('errorBox');
+  const errorText = document.getElementById('errorText');
+  const pwMeter = document.getElementById('pwMeter');
+  const pwHint = document.getElementById('pwHint');
+  const matchHint = document.getElementById('matchHint');
+
+  function showError(message){
+    errorText.textContent = message;
+    errorBox.classList.add('show');
+    errorBox.style.color = '';
+    errorBox.style.borderColor = '';
+    errorBox.style.background = '';
+  }
+
+  function hideError(){
+    errorBox.classList.remove('show');
+  }
+
+  function setLoading(isLoading){
+    submitBtn.disabled = isLoading;
+    submitBtn.classList.toggle('loading', isLoading);
+  }
+
+  function mapAuthError(code){
+    switch(code){
+      case 'auth/email-already-in-use': return 'Email ini sudah terdaftar. Coba masuk sebagai gantinya.';
+      case 'auth/invalid-email': return 'Format email tidak valid.';
+      case 'auth/weak-password': return 'Kata sandi terlalu lemah, gunakan minimal 6 karakter.';
+      case 'auth/network-request-failed': return 'Koneksi gagal. Periksa internet kamu.';
+      default: return 'Terjadi kesalahan. Silakan coba lagi.';
+    }
+  }
+
+  // toggle show/hide for both password fields
+  document.querySelectorAll('.toggle-pw').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.target);
+      const isPw = target.type === 'password';
+      target.type = isPw ? 'text' : 'password';
+      btn.setAttribute('aria-label', isPw ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi');
+    });
+  });
+
+  // live password strength feedback
+  function getStrength(pw){
+    let score = 0;
+    if(pw.length >= 6) score++;
+    if(pw.length >= 10) score++;
+    if(/[A-Z]/.test(pw) && /[0-9]/.test(pw)) score++;
+    return score; // 0–3
+  }
+
+  passwordInput.addEventListener('input', () => {
+    const pw = passwordInput.value;
+    const bars = pwMeter.querySelectorAll('span');
+    const score = getStrength(pw);
+    const colors = ['var(--danger)', 'var(--gold)', 'var(--good)'];
+
+    bars.forEach((bar, i) => {
+      bar.style.background = i < score ? colors[Math.max(score - 1, 0)] : 'var(--line)';
+    });
+
+    if(pw.length === 0){
+      pwHint.textContent = 'Minimal 6 karakter.';
+      pwHint.className = 'pw-hint';
+      passwordInput.classList.remove('field-error', 'field-good');
+    }else if(pw.length < 6){
+      pwHint.textContent = `Kurang ${6 - pw.length} karakter lagi.`;
+      pwHint.className = 'pw-hint error';
+      passwordInput.classList.add('field-error');
+      passwordInput.classList.remove('field-good');
+    }else{
+      const labels = ['Cukup', 'Cukup', 'Baik', 'Kuat'];
+      pwHint.textContent = `Kata sandi ${labels[score].toLowerCase()}.`;
+      pwHint.className = 'pw-hint good';
+      passwordInput.classList.remove('field-error');
+      passwordInput.classList.add('field-good');
+    }
+
+    checkMatch();
+  });
+
+  function checkMatch(){
+    const pw = passwordInput.value;
+    const cf = confirmInput.value;
+    if(cf.length === 0){
+      matchHint.classList.remove('show');
+      confirmInput.classList.remove('field-error', 'field-good');
+      return;
+    }
+    matchHint.classList.add('show');
+    if(pw === cf){
+      matchHint.textContent = 'Kata sandi cocok.';
+      matchHint.className = 'match-hint show good';
+      confirmInput.classList.remove('field-error');
+      confirmInput.classList.add('field-good');
+    }else{
+      matchHint.textContent = 'Kata sandi belum cocok.';
+      matchHint.className = 'match-hint show error';
+      confirmInput.classList.add('field-error');
+      confirmInput.classList.remove('field-good');
+    }
+  }
+
+  confirmInput.addEventListener('input', checkMatch);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError();
+
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    const confirm = confirmInput.value;
+
+    if(!name || !email || !password || !confirm){
+      showError('Lengkapi semua kolom terlebih dahulu.');
+      return;
+    }
+    if(password.length < 6){
+      showError('Kata sandi minimal 6 karakter.');
+      passwordInput.focus();
+      return;
+    }
+    if(password !== confirm){
+      showError('Kata sandi dan konfirmasi tidak cocok.');
+      confirmInput.focus();
+      return;
+    }
+    if(!termsInput.checked){
+      showError('Setujui Ketentuan Layanan & Kebijakan Privasi untuk lanjut.');
+      return;
+    }
+
+    setLoading(true);
+    try{
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(cred.user, { displayName: name });
+      // user is auto-logged-in by Firebase right after creation
+      window.location.href = 'dashboard.html#dashboard';
+    }catch(err){
+      showError(mapAuthError(err.code));
+    }finally{
+      setLoading(false);
+    }
+  });
+</script>
+
+</body>
+</html>
