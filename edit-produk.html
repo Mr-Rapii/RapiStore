@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Produk Saya - RAPI STORE</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+  :root{
+    --bg-0:#0a0a0d;
+    --bg-1:#121217;
+    --bg-2:#191920;
+    --bg-3:#21212a;
+    --line:#2a2a35;
+    --text-0:#f3f3f6;
+    --text-1:#a8a8b8;
+    --text-2:#6e6e80;
+    --accent:#ff5c35;
+    --accent-dim:#3a2018;
+    --accent-soft:#ffb199;
+    --gold:#ffc24b;
+    --good:#3ddc84;
+    --good-dim:#16301f;
+    --bad:#ff5c5c;
+    --bad-dim:#331717;
+    --pending:#ffc24b;
+    --pending-dim:#332b12;
+    --radius:14px;
+    --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --sans: "Inter", "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", monospace;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg-0);
+    color:var(--text-0);
+    font-family:var(--sans);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:32px;
+    overflow-x:hidden;
+  }
+  a{color:inherit; text-decoration:none;}
+  img{max-width:100%; display:block;}
+  button{font-family:inherit;}
+
+  .grain{
+    position:fixed; inset:0; pointer-events:none; z-index:999;
+    opacity:.035; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ===== TOP BAR ===== */
+  .topbar{
+    position:sticky; top:0; z-index:60;
+    display:flex; align-items:center; gap:12px;
+    padding:14px 16px;
+    background:rgba(10,10,13,.78);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  .icon-btn{
+    width:38px; height:38px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--bg-2); border:1px solid var(--line);
+    color:var(--text-0); cursor:pointer; flex-shrink:0;
+    transition:.2s;
+  }
+  .icon-btn:hover{background:var(--bg-3); border-color:var(--accent);}
+  .topbar-title{
+    font-family:var(--serif);
+    font-size:15px; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--text-1); flex:1; text-align:center;
+  }
+
+  /* ===== HERO ===== */
+  .hero{
+    padding:26px 18px 20px;
+    position:relative;
+    background:radial-gradient(circle at 85% 0%, rgba(255,92,53,.16), transparent 60%);
+    border-bottom:1px solid var(--line);
+  }
+  .hero-eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--accent-soft); margin-bottom:8px; display:flex; align-items:center; gap:7px;
+  }
+  .hero-eyebrow::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--accent); display:inline-block;}
+  .hero h1{
+    font-family:var(--serif); font-size:24px; font-weight:600; letter-spacing:-.01em;
+    margin-bottom:14px; line-height:1.25;
+  }
+  .hero-stats{ display:flex; gap:10px; flex-wrap:wrap; }
+  .hstat{
+    background:var(--bg-1); border:1px solid var(--line); border-radius:11px;
+    padding:9px 13px; flex:1; min-width:84px;
+  }
+  .hstat .hnum{ font-family:var(--serif); font-size:19px; font-weight:600; }
+  .hstat .hlabel{ font-size:10.5px; color:var(--text-2); margin-top:2px; }
+  .hstat.pending .hnum{ color:var(--pending); }
+  .hstat.approved .hnum{ color:var(--good); }
+  .hstat.rejected .hnum{ color:var(--bad); }
+
+  .wrap{ max-width:640px; margin:0 auto; padding:18px 16px 0; }
+
+  /* ===== Filter tabs ===== */
+  .filter-tabs{
+    display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:16px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .filter-tabs::-webkit-scrollbar{display:none;}
+  .ftab{
+    flex-shrink:0; padding:8px 16px; border-radius:30px;
+    background:var(--bg-2); border:1px solid var(--line);
+    font-size:13px; font-weight:600; color:var(--text-1); cursor:pointer;
+    transition:.2s; white-space:nowrap;
+  }
+  .ftab.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+  /* ===== Sell CTA ===== */
+  .sell-cta{
+    display:flex; align-items:center; gap:12px;
+    background:linear-gradient(135deg, var(--bg-2), var(--bg-1));
+    border:1px solid var(--line); border-radius:13px;
+    padding:14px; margin-bottom:18px; cursor:pointer; transition:.2s;
+  }
+  .sell-cta:hover{ border-color:var(--accent); }
+  .sell-cta-icon{
+    width:42px; height:42px; border-radius:11px; flex-shrink:0;
+    background:var(--accent-dim); color:var(--accent);
+    display:flex; align-items:center; justify-content:center; font-size:19px;
+  }
+  .sell-cta-text{flex:1;}
+  .sell-cta-text .t1{font-size:13.5px; font-weight:600;}
+  .sell-cta-text .t2{font-size:11.5px; color:var(--text-2);}
+  .sell-cta-arrow{color:var(--text-2); font-size:16px;}
+
+  /* ===== Product list ===== */
+  .product-row{
+    display:flex; gap:13px;
+    background:var(--bg-1); border:1px solid var(--line); border-radius:13px;
+    padding:13px; margin-bottom:12px;
+    animation:fadeUp .35s ease both;
+  }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+
+  .prow-img{
+    width:74px; height:74px; border-radius:10px; flex-shrink:0;
+    background:var(--bg-3); object-fit:cover; border:1px solid var(--line);
+  }
+  .prow-img-ph{
+    width:74px; height:74px; border-radius:10px; flex-shrink:0;
+    background:var(--bg-3); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; color:var(--text-2); font-size:22px;
+  }
+  .prow-body{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .prow-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .prow-name{
+    font-size:14px; font-weight:600; line-height:1.35;
+    overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  }
+  .status-badge{
+    flex-shrink:0; font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px;
+    letter-spacing:.02em; white-space:nowrap;
+  }
+  .status-badge.pending{ background:var(--pending-dim); color:var(--pending); }
+  .status-badge.approved{ background:var(--good-dim); color:var(--good); }
+  .status-badge.rejected{ background:var(--bad-dim); color:var(--bad); }
+
+  .prow-meta{ font-size:12px; color:var(--text-2); margin-top:4px; display:flex; gap:10px; flex-wrap:wrap;}
+  .prow-price{ font-family:var(--serif); font-size:15.5px; font-weight:600; color:var(--accent); margin-top:5px; }
+  .prow-reject-reason{
+    font-size:11px; color:var(--bad); margin-top:4px;
+    background:var(--bad-dim); padding:4px 8px; border-radius:7px;
+    overflow:hidden; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical;
+  }
+
+  .prow-actions{ display:flex; gap:8px; margin-top:8px; }
+  .prow-btn{
+    flex:1; height:34px; border-radius:9px; font-size:12.5px; font-weight:600;
+    border:1.5px solid var(--line); background:var(--bg-2); color:var(--text-0);
+    cursor:pointer; transition:.2s; display:flex; align-items:center; justify-content:center; gap:5px;
+  }
+  .prow-btn.edit:hover{ border-color:var(--accent); color:var(--accent-soft); }
+  .prow-btn.delete{ color:var(--bad); }
+  .prow-btn.delete:hover{ border-color:var(--bad); background:var(--bad-dim); }
+
+  /* ===== Empty / loading / error state ===== */
+  .state-box{ text-align:center; padding:50px 20px; color:var(--text-2); }
+  .state-box .sb-icon{ font-size:36px; margin-bottom:10px; }
+  .state-box .sb-title{ font-family:var(--serif); font-size:16.5px; color:var(--text-0); margin-bottom:6px; }
+  .state-box .sb-sub{ font-size:13px; line-height:1.6; max-width:320px; margin:0 auto; }
+  .state-box .sb-cta{
+    display:inline-block; margin-top:16px; color:var(--accent); font-weight:600; font-size:13.5px;
+  }
+
+  .skel-row{ display:flex; gap:13px; background:var(--bg-1); border:1px solid var(--line); border-radius:13px; padding:13px; margin-bottom:12px; }
+  .skel{
+    background:linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 37%, var(--bg-2) 63%);
+    background-size:400% 100%;
+    animation:skel 1.4s ease infinite;
+    border-radius:8px;
+  }
+  @keyframes skel{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
+
+  /* ===== Modal Edit ===== */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:200;
+    background:rgba(5,5,7,.78);
+    backdrop-filter:blur(4px);
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .modal-overlay.open{ display:flex; }
+  @media(min-width:640px){
+    .modal-overlay{ align-items:center; }
+  }
+
+  .modal-sheet{
+    width:100%; max-width:560px;
+    background:var(--bg-1); border:1px solid var(--line);
+    border-radius:20px 20px 0 0;
+    max-height:92vh; overflow-y:auto;
+    animation:slideUp .3s ease;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  @media(min-width:640px){
+    .modal-sheet{ border-radius:18px; max-height:88vh; margin:0 16px; }
+  }
+  @keyframes slideUp{ from{transform:translateY(100%);} to{transform:translateY(0);} }
+
+  .modal-head{
+    position:sticky; top:0; z-index:5;
+    display:flex; align-items:center; gap:12px;
+    padding:16px 18px; background:var(--bg-1);
+    border-bottom:1px solid var(--line);
+  }
+  .modal-head h2{ font-family:var(--serif); font-size:17px; font-weight:600; flex:1; }
+  .modal-close{
+    width:34px; height:34px; border-radius:50%; background:var(--bg-2); border:1px solid var(--line);
+    color:var(--text-0); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:15px;
+  }
+
+  .modal-body{ padding:18px; display:flex; flex-direction:column; gap:15px; }
+
+  .field{ display:flex; flex-direction:column; gap:7px; }
+  .field label{
+    font-size:12.5px; font-weight:600; color:var(--text-1); display:flex; align-items:center; gap:6px;
+  }
+  .field label .req{ color:var(--accent); font-size:11px; }
+  .field label .opt{
+    font-size:10.5px; color:var(--text-2); font-weight:400;
+    background:var(--bg-2); padding:1px 7px; border-radius:6px; margin-left:auto;
+  }
+  .err-text{ font-size:11.5px; color:var(--bad); display:none; align-items:center; gap:5px; }
+  .err-text.show{ display:flex; }
+
+  input[type="text"], input[type="number"], input[type="url"], textarea, select{
+    width:100%; background:var(--bg-2); border:1.5px solid var(--line); border-radius:11px;
+    padding:13px 14px; font-size:14.5px; color:var(--text-0); font-family:var(--sans);
+    transition:.2s; outline:none;
+  }
+  input::placeholder, textarea::placeholder{ color:var(--text-2); }
+  input:focus, textarea:focus, select:focus{
+    border-color:var(--accent); background:var(--bg-3); box-shadow:0 0 0 3px rgba(255,92,53,.12);
+  }
+  .field.invalid input, .field.invalid textarea, .field.invalid select{
+    border-color:var(--bad); box-shadow:0 0 0 3px rgba(255,92,92,.1);
+  }
+  textarea{ resize:vertical; min-height:100px; line-height:1.6; }
+  select{
+    appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a8a8b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 14px center; padding-right:38px; cursor:pointer;
+  }
+  select option{ background:var(--bg-2); color:var(--text-0); }
+
+  .row-split{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:380px){ .row-split{ grid-template-columns:1fr; } }
+
+  .price-input-wrap{ position:relative; }
+  .price-input-wrap input{ padding-left:42px; }
+  .price-prefix{
+    position:absolute; left:14px; top:50%; transform:translateY(-50%);
+    font-size:14.5px; color:var(--text-2); font-weight:600; pointer-events:none;
+  }
+
+  .char-count{ font-size:11px; color:var(--text-2); text-align:right; margin-top:-2px; }
+
+  .existing-img-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:4px; }
+  .existing-img{
+    aspect-ratio:1/1; border-radius:9px; overflow:hidden; background:var(--bg-2);
+    border:1px solid var(--line); position:relative;
+  }
+  .existing-img img{ width:100%; height:100%; object-fit:cover; }
+  .existing-img.cover::after{
+    content:"Cover"; position:absolute; bottom:0; left:0; right:0;
+    background:rgba(255,92,53,.9); color:#fff; font-size:8.5px; font-weight:700;
+    text-align:center; padding:2px 0; text-transform:uppercase;
+  }
+  .img-note{ font-size:11.5px; color:var(--text-2); line-height:1.5; }
+
+  .modal-foot{
+    position:sticky; bottom:0; display:flex; gap:10px;
+    padding:14px 18px; background:var(--bg-1); border-top:1px solid var(--line);
+  }
+  .btn-cancel{
+    flex:0 0 100px; height:46px; border-radius:12px; border:1.5px solid var(--line);
+    background:var(--bg-2); color:var(--text-1); font-weight:600; font-size:13.5px; cursor:pointer; transition:.2s;
+  }
+  .btn-cancel:hover{ border-color:var(--text-1); }
+  .btn-update{
+    flex:1; height:46px; border-radius:12px; border:none;
+    background:linear-gradient(135deg,var(--accent),#d8431f); color:#fff;
+    font-weight:700; font-size:14px; cursor:pointer; transition:.2s;
+    box-shadow:0 6px 18px rgba(255,92,53,.28);
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn-update:active{ transform:scale(.97); }
+  .btn-update:disabled{ opacity:.5; cursor:not-allowed; box-shadow:none; }
+  .spinner{
+    width:16px; height:16px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.35); border-top-color:#fff;
+    animation:spin .7s linear infinite; display:none;
+  }
+  .btn-update.loading .spinner{ display:inline-block; }
+  .btn-update.loading .btxt{ display:none; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* ===== Confirm delete modal ===== */
+  .confirm-overlay{
+    position:fixed; inset:0; z-index:250;
+    background:rgba(5,5,7,.82); backdrop-filter:blur(4px);
+    display:none; align-items:center; justify-content:center; padding:24px;
+  }
+  .confirm-overlay.open{ display:flex; }
+  .confirm-card{
+    background:var(--bg-1); border:1px solid var(--line); border-radius:18px;
+    padding:26px 22px; text-align:center; max-width:340px; width:100%;
+    animation:popIn .3s ease;
+  }
+  @keyframes popIn{ from{opacity:0; transform:scale(.92);} to{opacity:1; transform:scale(1);} }
+  .confirm-icon{
+    width:54px; height:54px; border-radius:50%; background:var(--bad-dim); color:var(--bad);
+    display:flex; align-items:center; justify-content:center; font-size:24px; margin:0 auto 14px;
+  }
+  .confirm-card h3{ font-family:var(--serif); font-size:17.5px; margin-bottom:8px; }
+  .confirm-card p{ font-size:13.5px; color:var(--text-1); margin-bottom:6px; line-height:1.55; }
+  .confirm-card .pname{ font-weight:700; color:var(--text-0); }
+  .confirm-actions{ display:flex; gap:10px; margin-top:18px; }
+  .confirm-actions button{
+    flex:1; height:44px; border-radius:11px; font-size:13.5px; font-weight:600; cursor:pointer; transition:.2s;
+  }
+  .confirm-cancel{ border:1.5px solid var(--line); background:var(--bg-2); color:var(--text-0); }
+  .confirm-cancel:hover{ border-color:var(--text-1); }
+  .confirm-delete{ border:none; background:var(--bad); color:#fff; }
+  .confirm-delete:disabled{ opacity:.5; cursor:not-allowed; }
+  .confirm-delete .spinner{ border-color:rgba(255,255,255,.4); border-top-color:#fff; }
+  .confirm-delete.loading .spinner{ display:inline-block; }
+  .confirm-delete.loading .ctxt{ display:none; }
+
+  /* ===== Toast ===== */
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--bg-3); border:1px solid var(--line); color:var(--text-0);
+    font-size:13.5px; font-weight:500; padding:11px 20px; border-radius:30px; z-index:300;
+    opacity:0; transition:.3s; pointer-events:none; display:flex; align-items:center; gap:8px;
+    box-shadow:0 10px 30px rgba(0,0,0,.4); white-space:nowrap; max-width:90vw;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <a href="dashboard.html#dashboard" class="icon-btn" aria-label="Kembali ke Dashboard">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <div class="topbar-title">Produk Saya</div>
+  <a href="jual.html#jual" class="icon-btn" aria-label="Jual Produk Baru">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </a>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Lapak Rapi Store</div>
+  <h1>Kelola produkmu di sini</h1>
+  <div class="hero-stats">
+    <div class="hstat pending"><div class="hnum" id="statPending">0</div><div class="hlabel">Menunggu</div></div>
+    <div class="hstat approved"><div class="hnum" id="statApproved">0</div><div class="hlabel">Disetujui</div></div>
+    <div class="hstat rejected"><div class="hnum" id="statRejected">0</div><div class="hlabel">Ditolak</div></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- Sell CTA -->
+  <a href="jual.html#jual" style="text-decoration:none;">
+    <div class="sell-cta">
+      <div class="sell-cta-icon">＋</div>
+      <div class="sell-cta-text">
+        <div class="t1">Pajang produk baru</div>
+        <div class="t2">Buka form jual produk</div>
+      </div>
+      <div class="sell-cta-arrow">→</div>
+    </div>
+  </a>
+
+  <!-- Filter tabs -->
+  <div class="filter-tabs" id="filterTabs">
+    <div class="ftab active" data-filter="all">Semua</div>
+    <div class="ftab" data-filter="pending">Menunggu Verifikasi</div>
+    <div class="ftab" data-filter="approved">Disetujui</div>
+    <div class="ftab" data-filter="rejected">Ditolak</div>
+  </div>
+
+  <!-- Product list -->
+  <div id="productList">
+    <div class="skel-row"><div class="skel" style="width:74px; height:74px;"></div><div style="flex:1;"><div class="skel" style="width:80%; height:14px; margin-bottom:8px;"></div><div class="skel" style="width:50%; height:12px;"></div></div></div>
+    <div class="skel-row"><div class="skel" style="width:74px; height:74px;"></div><div style="flex:1;"><div class="skel" style="width:70%; height:14px; margin-bottom:8px;"></div><div class="skel" style="width:40%; height:12px;"></div></div></div>
+  </div>
+
+</div>
+
+<!-- MODAL EDIT -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <h2>Edit Produk</h2>
+      <div class="modal-close" id="modalClose">✕</div>
+    </div>
+    <div class="modal-body">
+
+      <div class="field">
+        <label>Foto Saat Ini <span class="opt">Tidak bisa diubah di sini</span></label>
+        <div class="existing-img-grid" id="existingImgGrid"></div>
+        <div class="img-note">Untuk mengganti foto, hapus produk ini dan unggah ulang lewat halaman Jual.</div>
+      </div>
+
+      <div class="field" id="ef-name">
+        <label for="efName">Nama Produk <span class="req">*</span></label>
+        <input type="text" id="efName" maxlength="100">
+        <div class="char-count"><span id="efNameCount">0</span>/100</div>
+        <div class="err-text" id="efErrName">⚠ Nama produk wajib diisi (min. 5 karakter)</div>
+      </div>
+
+      <div class="row-split">
+        <div class="field" id="ef-category">
+          <label for="efCategory">Kategori <span class="req">*</span></label>
+          <select id="efCategory">
+            <option value="" disabled>Pilih kategori</option>
+            <option value="Fashion Pria">Fashion Pria</option>
+            <option value="Fashion Wanita">Fashion Wanita</option>
+            <option value="Elektronik">Elektronik</option>
+            <option value="Komputer & Aksesoris">Komputer & Aksesoris</option>
+            <option value="Handphone & Tablet">Handphone & Tablet</option>
+            <option value="Kesehatan & Kecantikan">Kesehatan & Kecantikan</option>
+            <option value="Makanan & Minuman">Makanan & Minuman</option>
+            <option value="Hobi & Koleksi">Hobi & Koleksi</option>
+            <option value="Rumah Tangga">Rumah Tangga</option>
+            <option value="Olahraga & Outdoor">Olahraga & Outdoor</option>
+            <option value="Otomotif">Otomotif</option>
+            <option value="Jasa & Digital">Jasa & Digital</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+          <div class="err-text" id="efErrCategory">⚠ Pilih salah satu kategori</div>
+        </div>
+        <div class="field" id="ef-price">
+          <label for="efPrice">Harga <span class="req">*</span></label>
+          <div class="price-input-wrap">
+            <span class="price-prefix">Rp</span>
+            <input type="number" id="efPrice" min="0" step="100" inputmode="numeric">
+          </div>
+          <div class="err-text" id="efErrPrice">⚠ Harga harus lebih dari Rp0</div>
+        </div>
+      </div>
+
+      <div class="field" id="ef-stock">
+        <label for="efStock">Stok <span class="req">*</span></label>
+        <input type="number" id="efStock" min="0" step="1" inputmode="numeric">
+        <div class="err-text" id="efErrStock">⚠ Stok wajib diisi (angka ≥ 0)</div>
+      </div>
+
+      <div class="field" id="ef-description">
+        <label for="efDesc">Deskripsi Lengkap <span class="req">*</span></label>
+        <textarea id="efDesc" maxlength="2000"></textarea>
+        <div class="char-count"><span id="efDescCount">0</span>/2000</div>
+        <div class="err-text" id="efErrDesc">⚠ Deskripsi minimal 20 karakter</div>
+      </div>
+
+      <div class="field" id="ef-previewLink">
+        <label for="efPreviewLink">Link Preview / Demo <span class="opt">Opsional</span></label>
+        <input type="url" id="efPreviewLink" placeholder="https://contoh.com/demo-produk">
+        <div class="err-text" id="efErrPreviewLink">⚠ Format link tidak valid (harus diawali https://)</div>
+      </div>
+
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" id="btnCancelEdit">Batal</button>
+      <button class="btn-update" id="btnUpdateProduct">
+        <span class="spinner"></span>
+        <span class="btxt">Update Produk</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE -->
+<div class="confirm-overlay" id="deleteOverlay">
+  <div class="confirm-card">
+    <div class="confirm-icon">🗑</div>
+    <h3>Hapus produk ini?</h3>
+    <p>Produk <span class="pname" id="deleteProductName">—</span> akan dihapus permanen dan tidak bisa dikembalikan.</p>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" id="btnCancelDelete">Batal</button>
+      <button class="confirm-delete" id="btnConfirmDelete">
+        <span class="spinner"></span>
+        <span class="ctxt">Hapus</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastDot" style="color:var(--good);">●</span><span id="toastMsg">Berhasil</span></div>
+
+<script>
+/* =======================================================
+   FIREBASE INIT
+======================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyBJJjcICAkbVWjrw5-zYMzcKqPGhS0nS0I",
+  authDomain: "piwstore.firebaseapp.com",
+  projectId: "piwstore",
+  storageBucket: "piwstore.firebasestorage.app",
+  messagingSenderId: "419258630997",
+  appId: "1:419258630997:web:aefc0e34cc4b7ca16d25dc",
+  measurementId: "G-M6NHQMHQV4"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* =======================================================
+   STATE
+======================================================= */
+let currentUser = null;
+let allProducts = [];
+let currentFilter = 'all';
+let activeEditId = null;
+let activeDeleteId = null;
+let activeDeleteName = '';
+let unsubscribeProducts = null;
+
+function formatRupiah(num){
+  if (num === null || num === undefined || isNaN(num)) return "Rp0";
+  return "Rp" + Number(num).toLocaleString('id-ID');
+}
+function escapeHtml(str){
+  if(!str) return "";
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function showToast(msg, ok=true){
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastDot').style.color = ok ? 'var(--good)' : 'var(--bad)';
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=> t.classList.remove('show'), 2600);
+}
+
+/* Normalize whatever 'status' field a product has into one of:
+   pending | approved | rejected */
+function normalizeStatus(p){
+  const s = (p.status || '').toLowerCase();
+  if (['pending','menunggu','waiting','review','menunggu_verifikasi'].includes(s)) return 'pending';
+  if (['rejected','ditolak','declined'].includes(s)) return 'rejected';
+  // 'active', 'approved', 'disetujui', or anything else defaults to approved
+  return 'approved';
+}
+function statusLabel(key){
+  if (key === 'pending') return 'Menunggu Verifikasi';
+  if (key === 'rejected') return 'Ditolak';
+  return 'Disetujui';
+}
+
+/* =======================================================
+   AUTH + LOAD PRODUCTS
+======================================================= */
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  if (user){
+    listenMyProducts();
+  } else {
+    renderState('login');
+  }
+});
+
+function listenMyProducts(){
+  if (unsubscribeProducts) unsubscribeProducts();
+  unsubscribeProducts = db.collection('products')
+    .where('ownerId', '==', currentUser.uid)
+    .onSnapshot(snap => {
+      allProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      allProducts.sort((a,b) => {
+        const at = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+        const bt = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+        return bt - at;
+      });
+      updateStats();
+      renderList();
+    }, err => {
+      console.error(err);
+      renderState('error', err.message);
+    });
+}
+
+function updateStats(){
+  let pending=0, approved=0, rejected=0;
+  allProducts.forEach(p => {
+    const s = normalizeStatus(p);
+    if (s==='pending') pending++;
+    else if (s==='rejected') rejected++;
+    else approved++;
+  });
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statApproved').textContent = approved;
+  document.getElementById('statRejected').textContent = rejected;
+}
+
+/* =======================================================
+   FILTER TABS
+======================================================= */
+document.getElementById('filterTabs').addEventListener('click', (e) => {
+  const tab = e.target.closest('.ftab');
+  if (!tab) return;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  currentFilter = tab.dataset.filter;
+  renderList();
+});
+
+/* =======================================================
+   RENDER LIST
+======================================================= */
+function renderList(){
+  const listEl = document.getElementById('productList');
+
+  let items = allProducts;
+  if (currentFilter !== 'all'){
+    items = allProducts.filter(p => normalizeStatus(p) === currentFilter);
+  }
+
+  if (allProducts.length === 0){
+    renderState('empty');
+    return;
+  }
+  if (items.length === 0){
+    listEl.innerHTML = `
+      <div class="state-box">
+        <div class="sb-icon">🔍</div>
+        <div class="sb-title">Tidak ada produk di filter ini</div>
+        <div class="sb-sub">Coba pilih tab status lain untuk melihat produkmu.</div>
+      </div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = items.map((p, idx) => {
+    const statusKey = normalizeStatus(p);
+    const img = p.imageUrl || (Array.isArray(p.images) && p.images[0]) || '';
+    const stock = (typeof p.stock === 'number') ? p.stock : 0;
+
+    return `
+      <div class="product-row" style="animation-delay:${idx*30}ms" data-id="${p.id}">
+        ${img ? `<img class="prow-img" src="${escapeHtml(img)}" alt="${escapeHtml(p.name||'')}" loading="lazy">` : `<div class="prow-img-ph">📦</div>`}
+        <div class="prow-body">
+          <div class="prow-top">
+            <div class="prow-name">${escapeHtml(p.name || 'Tanpa Nama')}</div>
+            <div class="status-badge ${statusKey}">${statusLabel(statusKey)}</div>
+          </div>
+          <div class="prow-meta">
+            <span>${escapeHtml(p.category || 'Tanpa kategori')}</span>
+            <span>Stok ${stock}</span>
+          </div>
+          <div class="prow-price">${formatRupiah(p.price)}</div>
+          ${statusKey === 'rejected' && p.rejectReason ? `<div class="prow-reject-reason">Alasan: ${escapeHtml(p.rejectReason)}</div>` : ''}
+          <div class="prow-actions">
+            <button class="prow-btn edit" data-edit="${p.id}">✎ Edit</button>
+            <button class="prow-btn delete" data-delete="${p.id}">🗑 Hapus</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  listEl.querySelectorAll('[data-edit]').forEach(btn => {
+    btn.addEventListener('click', () => openEditModal(btn.dataset.edit));
+  });
+  listEl.querySelectorAll('[data-delete]').forEach(btn => {
+    btn.addEventListener('click', () => openDeleteConfirm(btn.dataset.delete));
+  });
+}
+
+function renderState(type, msg){
+  const listEl = document.getElementById('productList');
+  if (type === 'empty'){
+    listEl.innerHTML = `
+      <div class="state-box">
+        <div class="sb-icon">📦</div>
+        <div class="sb-title">Belum ada produk</div>
+        <div class="sb-sub">Kamu belum memajang produk apa pun. Yuk mulai jualan pertamamu.</div>
+        <a href="jual.html#jual" class="sb-cta">+ Jual Produk Sekarang</a>
+      </div>
+    `;
+  } else if (type === 'login'){
+    listEl.innerHTML = `
+      <div class="state-box">
+        <div class="sb-icon">🔒</div>
+        <div class="sb-title">Silakan masuk</div>
+        <div class="sb-sub">Masuk ke akunmu untuk melihat dan mengelola produk yang kamu jual.</div>
+      </div>
+    `;
+  } else if (type === 'error'){
+    listEl.innerHTML = `
+      <div class="state-box">
+        <div class="sb-icon">⚠️</div>
+        <div class="sb-title">Gagal memuat produk</div>
+        <div class="sb-sub">${escapeHtml(msg || 'Terjadi kesalahan koneksi ke server.')}</div>
+      </div>
+    `;
+  }
+}
+
+/* =======================================================
+   EDIT MODAL
+======================================================= */
+const editModal = document.getElementById('editModal');
+const efName = document.getElementById('efName');
+const efDesc = document.getElementById('efDesc');
+const efPrice = document.getElementById('efPrice');
+
+function openEditModal(productId){
+  const p = allProducts.find(x => x.id === productId);
+  if (!p) return;
+  activeEditId = productId;
+
+  efName.value = p.name || '';
+  document.getElementById('efNameCount').textContent = efName.value.length;
+  document.getElementById('efCategory').value = p.category || '';
+  efPrice.value = p.price || '';
+  document.getElementById('efStock').value = (typeof p.stock === 'number') ? p.stock : '';
+  efDesc.value = p.description || '';
+  document.getElementById('efDescCount').textContent = efDesc.value.length;
+  document.getElementById('efPreviewLink').value = p.previewLink || '';
+
+  // Existing images grid
+  const images = (Array.isArray(p.images) && p.images.length) ? p.images : (p.imageUrl ? [p.imageUrl] : []);
+  const grid = document.getElementById('existingImgGrid');
+  grid.innerHTML = images.length
+    ? images.map((url, i) => `<div class="existing-img ${i===0?'cover':''}"><img src="${escapeHtml(url)}" alt="Foto ${i+1}"></div>`).join('')
+    : `<div style="color:var(--text-2); font-size:12px; grid-column:1/-1; padding:10px 0;">Tidak ada foto.</div>`;
+
+  // Clear validation states
+  document.querySelectorAll('#editModal .field').forEach(f => f.classList.remove('invalid'));
+  document.querySelectorAll('#editModal .err-text').forEach(e => e.classList.remove('show'));
+
+  editModal.classList.add('open');
+}
+
+function closeEditModal(){
+  editModal.classList.remove('open');
+  activeEditId = null;
+}
+document.getElementById('modalClose').addEventListener('click', closeEditModal);
+document.getElementById('btnCancelEdit').addEventListener('click', closeEditModal);
+editModal.addEventListener('click', (e) => { if (e.target === editModal) closeEditModal(); });
+
+efName.addEventListener('input', () => {
+  document.getElementById('efNameCount').textContent = efName.value.length;
+});
+efDesc.addEventListener('input', () => {
+  document.getElementById('efDescCount').textContent = efDesc.value.length;
+});
+
+function setEfFieldState(fieldId, valid, errId){
+  document.getElementById(fieldId).classList.toggle('invalid', !valid);
+  document.getElementById(errId).classList.toggle('show', !valid);
+}
+
+function validateEditForm(){
+  let ok = true;
+
+  const nameOk = efName.value.trim().length >= 5;
+  setEfFieldState('ef-name', nameOk, 'efErrName'); if (!nameOk) ok = false;
+
+  const catOk = document.getElementById('efCategory').value !== '';
+  setEfFieldState('ef-category', catOk, 'efErrCategory'); if (!catOk) ok = false;
+
+  const priceVal = parseFloat(efPrice.value);
+  const priceOk = !isNaN(priceVal) && priceVal > 0;
+  setEfFieldState('ef-price', priceOk, 'efErrPrice'); if (!priceOk) ok = false;
+
+  const stockVal = document.getElementById('efStock').value;
+  const stockNum = parseInt(stockVal, 10);
+  const stockOk = stockVal !== '' && !isNaN(stockNum) && stockNum >= 0;
+  setEfFieldState('ef-stock', stockOk, 'efErrStock'); if (!stockOk) ok = false;
+
+  const descOk = efDesc.value.trim().length >= 20;
+  setEfFieldState('ef-description', descOk, 'efErrDesc'); if (!descOk) ok = false;
+
+  const linkVal = document.getElementById('efPreviewLink').value.trim();
+  const linkOk = linkVal === '' || /^https?:\/\/.+\..+/.test(linkVal);
+  setEfFieldState('ef-previewLink', linkOk, 'efErrPreviewLink'); if (!linkOk) ok = false;
+
+  return ok;
+}
+
+/* =======================================================
+   UPDATE PRODUCT
+======================================================= */
+const btnUpdateProduct = document.getElementById('btnUpdateProduct');
+btnUpdateProduct.addEventListener('click', async () => {
+  if (!activeEditId) return;
+  if (!validateEditForm()){
+    showToast('Lengkapi semua data yang wajib diisi', false);
+    return;
+  }
+
+  btnUpdateProduct.disabled = true;
+  btnUpdateProduct.classList.add('loading');
+
+  try{
+    const linkVal = document.getElementById('efPreviewLink').value.trim();
+    await db.collection('products').doc(activeEditId).update({
+      name: efName.value.trim(),
+      category: document.getElementById('efCategory').value,
+      price: parseFloat(efPrice.value),
+      stock: parseInt(document.getElementById('efStock').value, 10),
+      description: efDesc.value.trim(),
+      previewLink: linkVal || null,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('Produk berhasil diperbarui');
+    closeEditModal();
+  }catch(err){
+    console.error(err);
+    showToast('Gagal memperbarui produk: ' + (err.message || 'coba lagi'), false);
+  }finally{
+    btnUpdateProduct.disabled = false;
+    btnUpdateProduct.classList.remove('loading');
+  }
+});
+
+/* =======================================================
+   DELETE PRODUCT
+======================================================= */
+const deleteOverlay = document.getElementById('deleteOverlay');
+function openDeleteConfirm(productId){
+  const p = allProducts.find(x => x.id === productId);
+  if (!p) return;
+  activeDeleteId = productId;
+  activeDeleteName = p.name || 'ini';
+  document.getElementById('deleteProductName').textContent = `"${activeDeleteName}"`;
+  deleteOverlay.classList.add('open');
+}
+function closeDeleteConfirm(){
+  deleteOverlay.classList.remove('open');
+  activeDeleteId = null;
+}
+document.getElementById('btnCancelDelete').addEventListener('click', closeDeleteConfirm);
+deleteOverlay.addEventListener('click', (e) => { if (e.target === deleteOverlay) closeDeleteConfirm(); });
+
+const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+btnConfirmDelete.addEventListener('click', async () => {
+  if (!activeDeleteId) return;
+  btnConfirmDelete.disabled = true;
+  btnConfirmDelete.classList.add('loading');
+  try{
+    await db.collection('products').doc(activeDeleteId).delete();
+    showToast('Produk berhasil dihapus');
+    closeDeleteConfirm();
+  }catch(err){
+    console.error(err);
+    showToast('Gagal menghapus produk: ' + (err.message || 'coba lagi'), false);
+  }finally{
+    btnConfirmDelete.disabled = false;
+    btnConfirmDelete.classList.remove('loading');
+  }
+});
+</script>
+
+</body>
+</html>
