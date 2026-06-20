@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Premium — RAPI STORE</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ─── Reset & Base ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:        #070B14;
+    --surface:   #0D1526;
+    --surface2:  #111D35;
+    --gold:      #F0A500;
+    --gold-dim:  #C47F00;
+    --gold-glow: rgba(240,165,0,.18);
+    --text:      #E8ECF4;
+    --muted:     #7A8BA8;
+    --danger:    #E05A5A;
+    --green:     #3FD68F;
+    --radius:    14px;
+    --transition: .22s cubic-bezier(.4,0,.2,1);
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ─── Shimmer keyframe ─── */
+  @keyframes shimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position:  200% center; }
+  }
+  @keyframes pulse-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(240,165,0,.4); }
+    70%  { box-shadow: 0 0 0 12px rgba(240,165,0,0); }
+    100% { box-shadow: 0 0 0 0 rgba(240,165,0,0); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-6px); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  /* ─── Nav ─── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(7,11,20,.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(240,165,0,.12);
+    padding: 0 20px;
+  }
+  .nav-inner {
+    max-width: 720px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px;
+  }
+  .nav-brand {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 800; font-size: 18px;
+    background: linear-gradient(90deg, var(--gold), #FFD166, var(--gold));
+    background-size: 200% auto;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s linear infinite;
+    text-decoration: none;
+  }
+  .nav-links { display: flex; gap: 4px; }
+  .nav-links a {
+    color: var(--muted); font-size: 13px; font-weight: 500;
+    text-decoration: none; padding: 6px 14px; border-radius: 8px;
+    transition: var(--transition);
+  }
+  .nav-links a:hover { color: var(--text); background: var(--surface2); }
+
+  /* ─── Page container ─── */
+  .page { max-width: 720px; margin: 0 auto; padding: 32px 16px 80px; }
+
+  /* ─── Status Banner ─── */
+  .status-card {
+    position: relative; overflow: hidden;
+    background: var(--surface); border-radius: 18px;
+    border: 1px solid rgba(240,165,0,.15);
+    padding: 28px 24px;
+    display: flex; align-items: center; gap: 20px;
+    margin-bottom: 36px;
+    animation: fadeUp .5s ease both;
+  }
+  .status-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at top left, rgba(240,165,0,.08) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .status-crown {
+    flex-shrink: 0; width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--gold), #FFD166);
+    border-radius: 50%; display: grid; place-items: center;
+    font-size: 26px;
+    animation: float 3.5s ease-in-out infinite;
+  }
+  .status-crown.inactive {
+    background: var(--surface2);
+    filter: grayscale(1) opacity(.5);
+    animation: none;
+  }
+  .status-info { flex: 1; min-width: 0; }
+  .status-info h2 {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700; font-size: 18px; margin-bottom: 2px;
+  }
+  .status-info p { color: var(--muted); font-size: 13px; }
+  .badge {
+    flex-shrink: 0;
+    padding: 5px 14px; border-radius: 100px;
+    font-size: 12px; font-weight: 600; letter-spacing: .5px;
+    text-transform: uppercase;
+  }
+  .badge.active   { background: rgba(63,214,143,.15); color: var(--green); border: 1px solid rgba(63,214,143,.3); }
+  .badge.expired  { background: rgba(224,90,90,.15);  color: var(--danger); border: 1px solid rgba(224,90,90,.3); }
+  .badge.loading  { background: var(--surface2); color: var(--muted); border: 1px solid transparent; }
+
+  /* loading spinner inline */
+  .spinner {
+    display: inline-block; width: 12px; height: 12px;
+    border: 2px solid rgba(255,255,255,.2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin-slow .7s linear infinite;
+    vertical-align: middle; margin-right: 6px;
+  }
+
+  /* ─── Section title ─── */
+  .section-label {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700; font-size: 11px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 14px;
+  }
+  .section-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 800; font-size: 22px;
+    margin-bottom: 20px; line-height: 1.3;
+  }
+
+  /* ─── Pricing grid ─── */
+  .pricing-section { margin-bottom: 44px; animation: fadeUp .5s .1s ease both; }
+  .plan-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 480px) { .plan-grid { grid-template-columns: 1fr; } }
+
+  .plan-card {
+    position: relative; overflow: hidden;
+    background: var(--surface); border-radius: var(--radius);
+    border: 1.5px solid rgba(255,255,255,.06);
+    padding: 22px 20px;
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+  }
+  .plan-card::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(240,165,0,.06) 0%, transparent 60%);
+    opacity: 0; transition: var(--transition);
+    pointer-events: none;
+  }
+  .plan-card:hover,
+  .plan-card.selected {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(240,165,0,.12);
+  }
+  .plan-card:hover::after,
+  .plan-card.selected::after { opacity: 1; }
+  .plan-card.selected { animation: pulse-ring .6s ease; }
+
+  /* popular badge */
+  .plan-card.popular::before {
+    content: '★ Terpopuler';
+    position: absolute; top: 12px; right: 12px;
+    font-size: 10px; font-weight: 700; letter-spacing: .4px;
+    color: var(--bg); background: var(--gold);
+    padding: 3px 9px; border-radius: 100px;
+  }
+
+  .plan-duration {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700; font-size: 15px;
+    margin-bottom: 10px; color: var(--text);
+  }
+  .plan-price {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 900; font-size: 26px;
+    color: var(--gold); line-height: 1.1;
+  }
+  .plan-price span {
+    font-size: 13px; font-weight: 500;
+    color: var(--muted); display: block; margin-top: 2px;
+  }
+  .plan-check {
+    position: absolute; bottom: 16px; right: 16px;
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.12);
+    display: grid; place-items: center;
+    font-size: 11px; transition: var(--transition);
+  }
+  .plan-card.selected .plan-check {
+    background: var(--gold); border-color: var(--gold); color: var(--bg);
+  }
+
+  /* ─── Benefit section ─── */
+  .benefit-section { margin-bottom: 44px; animation: fadeUp .5s .2s ease both; }
+  .benefit-grid { display: flex; flex-direction: column; gap: 10px; }
+  .benefit-item {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--surface); border-radius: 12px;
+    padding: 14px 18px;
+    border: 1px solid rgba(255,255,255,.05);
+    transition: var(--transition);
+  }
+  .benefit-item:hover { border-color: rgba(240,165,0,.2); }
+  .benefit-icon {
+    flex-shrink: 0; width: 38px; height: 38px;
+    background: var(--gold-glow); border-radius: 10px;
+    display: grid; place-items: center; font-size: 18px;
+  }
+  .benefit-text strong { display: block; font-size: 14px; font-weight: 600; margin-bottom: 1px; }
+  .benefit-text p { font-size: 12px; color: var(--muted); }
+
+  /* ─── CTA ─── */
+  .cta-section { animation: fadeUp .5s .3s ease both; }
+  .btn-subscribe {
+    width: 100%; padding: 17px;
+    border: none; border-radius: var(--radius);
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700; font-size: 15px;
+    cursor: pointer;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold), #FFD166, var(--gold), var(--gold-dim));
+    background-size: 300% auto;
+    color: #0A0600;
+    letter-spacing: .3px;
+    transition: var(--transition);
+    position: relative; overflow: hidden;
+  }
+  .btn-subscribe:hover:not(:disabled) {
+    animation: shimmer 1.4s linear infinite;
+    box-shadow: 0 6px 28px rgba(240,165,0,.35);
+    transform: translateY(-1px);
+  }
+  .btn-subscribe:active:not(:disabled) { transform: scale(.98); }
+  .btn-subscribe:disabled {
+    opacity: .5; cursor: not-allowed;
+  }
+  .cta-note {
+    text-align: center; font-size: 12px;
+    color: var(--muted); margin-top: 12px;
+  }
+
+  /* ─── Toast ─── */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--surface2); border: 1px solid rgba(240,165,0,.3);
+    color: var(--text); padding: 12px 24px; border-radius: 100px;
+    font-size: 13px; font-weight: 500;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    transition: transform .35s cubic-bezier(.4,0,.2,1), opacity .35s;
+    opacity: 0; z-index: 999; white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* ─── Modal ─── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,.7); backdrop-filter: blur(6px);
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .3s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: auto; }
+  .modal {
+    background: var(--surface); border-radius: 20px 20px 0 0;
+    padding: 28px 20px 40px; width: 100%; max-width: 720px;
+    border-top: 1px solid rgba(240,165,0,.2);
+    transform: translateY(100%); transition: transform .35s cubic-bezier(.4,0,.2,1);
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-handle {
+    width: 40px; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,.15); margin: 0 auto 24px;
+  }
+  .modal h3 {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700; font-size: 18px; margin-bottom: 6px;
+  }
+  .modal p { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .modal-summary {
+    background: var(--bg); border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 20px;
+    border: 1px solid rgba(240,165,0,.15);
+  }
+  .modal-summary .row {
+    display: flex; justify-content: space-between;
+    font-size: 13px; padding: 4px 0;
+  }
+  .modal-summary .row.total {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    font-weight: 700; font-size: 15px; color: var(--gold);
+  }
+  .modal-btns { display: flex; gap: 10px; }
+  .btn-cancel {
+    flex: 1; padding: 14px; border-radius: 12px;
+    border: 1.5px solid rgba(255,255,255,.1);
+    background: transparent; color: var(--muted);
+    font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 14px;
+    cursor: pointer; transition: var(--transition);
+  }
+  .btn-cancel:hover { border-color: rgba(255,255,255,.25); color: var(--text); }
+  .btn-confirm {
+    flex: 2; padding: 14px; border-radius: 12px;
+    border: none;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+    color: #0A0600; font-family: 'Poppins', sans-serif;
+    font-weight: 700; font-size: 14px; cursor: pointer;
+    transition: var(--transition);
+  }
+  .btn-confirm:hover { box-shadow: 0 4px 20px rgba(240,165,0,.3); }
+
+  /* divider */
+  .divider { height: 1px; background: rgba(255,255,255,.06); margin: 36px 0; }
+</style>
+</head>
+<body>
+
+<!-- ─── Nav ─── -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-brand" href="#">✦ RAPI STORE</a>
+    <div class="nav-links">
+      <a href="dashboard.html#dashboard">Dashboard</a>
+      <a href="profil.html#profil">Profil</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ─── Main ─── -->
+<div class="page">
+
+  <!-- Status Banner -->
+  <div class="status-card" id="statusCard">
+    <div class="status-crown" id="statusCrown">👑</div>
+    <div class="status-info">
+      <h2 id="statusTitle">Memuat status…</h2>
+      <p id="statusDesc">Harap tunggu sebentar.</p>
+    </div>
+    <span class="badge loading" id="statusBadge">
+      <span class="spinner"></span> Cek
+    </span>
+  </div>
+
+  <!-- Pricing -->
+  <div class="pricing-section">
+    <p class="section-label">Pilih Durasi</p>
+    <div class="section-title">Paket Premium 👑</div>
+    <div class="plan-grid" id="planGrid">
+
+      <div class="plan-card" data-plan="1w" data-label="1 Minggu" data-price="25000" onclick="selectPlan(this)">
+        <div class="plan-duration">1 Minggu</div>
+        <div class="plan-price">Rp 25.000 <span>per minggu</span></div>
+        <div class="plan-check">✓</div>
+      </div>
+
+      <div class="plan-card popular" data-plan="1m" data-label="1 Bulan" data-price="75000" onclick="selectPlan(this)">
+        <div class="plan-duration">1 Bulan</div>
+        <div class="plan-price">Rp 75.000 <span>per bulan</span></div>
+        <div class="plan-check">✓</div>
+      </div>
+
+      <div class="plan-card" data-plan="3m" data-label="3 Bulan" data-price="150000" onclick="selectPlan(this)">
+        <div class="plan-duration">3 Bulan</div>
+        <div class="plan-price">Rp 150.000 <span>Hemat 33%!</span></div>
+        <div class="plan-check">✓</div>
+      </div>
+
+      <div class="plan-card" data-plan="1y" data-label="1 Tahun" data-price="500000" onclick="selectPlan(this)">
+        <div class="plan-duration">1 Tahun</div>
+        <div class="plan-price">Rp 500.000 <span>Hemat terbaik!</span></div>
+        <div class="plan-check">✓</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Benefits -->
+  <div class="benefit-section">
+    <p class="section-label">Keuntungan</p>
+    <div class="section-title">Apa yang kamu dapat? ✨</div>
+    <div class="benefit-grid">
+      <div class="benefit-item">
+        <div class="benefit-icon">⚡</div>
+        <div class="benefit-text">
+          <strong>Akses Semua Fitur Bot</strong>
+          <p>Gunakan seluruh plugin tanpa batasan, termasuk fitur eksklusif premium.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🚀</div>
+        <div class="benefit-text">
+          <strong>Prioritas Respons</strong>
+          <p>Perintahmu diproses lebih cepat dibanding pengguna gratis.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🔓</div>
+        <div class="benefit-text">
+          <strong>Konten Tanpa Sensor</strong>
+          <p>Akses perintah khusus yang tidak tersedia untuk akun biasa.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🛡️</div>
+        <div class="benefit-text">
+          <strong>Anti-Limit & Anti-Banned</strong>
+          <p>Perlindungan ekstra agar akunmu aman dari limitasi bot.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🎁</div>
+        <div class="benefit-text">
+          <strong>Update Gratis Selamanya</strong>
+          <p>Nikmati fitur-fitur baru tanpa biaya tambahan selama masa aktif.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">💬</div>
+        <div class="benefit-text">
+          <strong>Support Prioritas 24/7</strong>
+          <p>Bantuan langsung dari admin kapan pun kamu butuhkan.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <button class="btn-subscribe" id="btnSubscribe" onclick="openModal()" disabled>
+      👑 Pilih Paket Dulu
+    </button>
+    <p class="cta-note">Pembayaran manual via admin · Aktif setelah konfirmasi</p>
+  </div>
+
+</div>
+
+<!-- ─── Modal Konfirmasi ─── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalBg(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Konfirmasi Langganan</h3>
+    <p>Pesan akan dikirim ke admin untuk proses pembayaran.</p>
+    <div class="modal-summary">
+      <div class="row"><span>Paket</span><span id="mPlan">—</span></div>
+      <div class="row"><span>Durasi</span><span id="mDur">—</span></div>
+      <div class="row total"><span>Total</span><span id="mPrice">—</span></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Batal</button>
+      <button class="btn-confirm" onclick="confirmSubscribe()">Konfirmasi & Hubungi Admin</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Toast ─── -->
+<div id="toast"></div>
+
+<!-- ─── Firebase ─── -->
+<script type="module">
+  import { initializeApp }       from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyBJJjcICAkbVWjrw5-zYMzcKqPGhS0nS0I",
+    authDomain:        "piwstore.firebaseapp.com",
+    projectId:         "piwstore",
+    storageBucket:     "piwstore.firebasestorage.app",
+    messagingSenderId: "419258630997",
+    appId:             "1:419258630997:web:aefc0e34cc4b7ca16d25dc",
+    measurementId:     "G-M6NHQMHQV4"
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
+  const auth = getAuth(app);
+
+  // Format Rupiah
+  function rupiah(n) {
+    return 'Rp ' + Number(n).toLocaleString('id-ID');
+  }
+
+  // Render status
+  function renderStatus(isPremium, expiry) {
+    const crown = document.getElementById('statusCrown');
+    const title = document.getElementById('statusTitle');
+    const desc  = document.getElementById('statusDesc');
+    const badge = document.getElementById('statusBadge');
+
+    if (isPremium) {
+      crown.classList.remove('inactive');
+      title.textContent = 'Status Premium Aktif';
+      desc.textContent  = expiry
+        ? `Aktif hingga ${new Date(expiry.seconds * 1000).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}`
+        : 'Selamat menikmati akses penuh!';
+      badge.className  = 'badge active';
+      badge.innerHTML  = '✦ Aktif';
+    } else {
+      crown.classList.add('inactive');
+      title.textContent = 'Belum Berlangganan';
+      desc.textContent  = 'Pilih paket di bawah dan mulai nikmati fitur penuh.';
+      badge.className  = 'badge expired';
+      badge.innerHTML  = '✕ Tidak Aktif';
+    }
+  }
+
+  // Auth guard & fetch premium data
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      renderStatus(false, null);
+      return;
+    }
+
+    try {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (snap.exists()) {
+        const data = snap.data();
+        const now  = new Date();
+        const exp  = data.premiumExpiry ? new Date(data.premiumExpiry.seconds * 1000) : null;
+        const active = data.isPremium && exp && exp > now;
+        renderStatus(active, active ? data.premiumExpiry : null);
+        window._userUid   = user.uid;
+        window._userPhone = data.phone || user.phoneNumber || '';
+      } else {
+        renderStatus(false, null);
+      }
+    } catch(e) {
+      console.error(e);
+      renderStatus(false, null);
+    }
+  });
+</script>
+
+<script>
+  // ─── Plan selection ───
+  let selectedPlan = null;
+
+  function selectPlan(el) {
+    document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedPlan = {
+      plan:  el.dataset.plan,
+      label: el.dataset.label,
+      price: parseInt(el.dataset.price)
+    };
+    const btn = document.getElementById('btnSubscribe');
+    btn.disabled     = false;
+    btn.textContent  = `👑 Langganan ${el.dataset.label}`;
+  }
+
+  // ─── Modal ───
+  function openModal() {
+    if (!selectedPlan) return;
+    document.getElementById('mPlan').textContent  = 'Premium ' + selectedPlan.label;
+    document.getElementById('mDur').textContent   = selectedPlan.label;
+    document.getElementById('mPrice').textContent = 'Rp ' + selectedPlan.price.toLocaleString('id-ID');
+    document.getElementById('modalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function closeModalBg(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  }
+
+  function confirmSubscribe() {
+    if (!selectedPlan) return;
+    closeModal();
+    const msg = encodeURIComponent(
+      `Halo Admin RAPI STORE! 👑\n\n` +
+      `Saya ingin berlangganan *Premium ${selectedPlan.label}*\n` +
+      `Harga: Rp ${selectedPlan.price.toLocaleString('id-ID')}\n\n` +
+      `UID: ${window._userUid || '(belum login)'}\n\n` +
+      `Mohon konfirmasi pembayarannya. Terima kasih!`
+    );
+    // Ganti nomor admin di bawah
+    const adminWA = '6282327606644';
+    window.open(`https://wa.me/${adminWA}?text=${msg}`, '_blank');
+    showToast('✦ Permintaan dikirim! Tunggu konfirmasi admin.');
+  }
+
+  // ─── Toast ───
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3200);
+  }
+</script>
+</body>
+</html>
