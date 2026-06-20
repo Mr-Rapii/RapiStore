@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Jual Produk - RAPI STORE</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+  :root{
+    --bg-0:#0a0a0d;
+    --bg-1:#121217;
+    --bg-2:#191920;
+    --bg-3:#21212a;
+    --line:#2a2a35;
+    --text-0:#f3f3f6;
+    --text-1:#a8a8b8;
+    --text-2:#6e6e80;
+    --accent:#ff5c35;
+    --accent-dim:#3a2018;
+    --accent-soft:#ffb199;
+    --gold:#ffc24b;
+    --good:#3ddc84;
+    --bad:#ff5c5c;
+    --radius:14px;
+    --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --sans: "Inter", "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", monospace;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg-0);
+    color:var(--text-0);
+    font-family:var(--sans);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:96px;
+    overflow-x:hidden;
+  }
+  a{color:inherit; text-decoration:none;}
+  img{max-width:100%; display:block;}
+
+  .grain{
+    position:fixed; inset:0; pointer-events:none; z-index:999;
+    opacity:.035; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ===== TOP BAR ===== */
+  .topbar{
+    position:sticky; top:0; z-index:60;
+    display:flex; align-items:center; gap:12px;
+    padding:14px 16px;
+    background:rgba(10,10,13,.78);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  .icon-btn{
+    width:38px; height:38px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--bg-2); border:1px solid var(--line);
+    color:var(--text-0); cursor:pointer; flex-shrink:0;
+    transition:.2s;
+  }
+  .icon-btn:hover{background:var(--bg-3); border-color:var(--accent);}
+  .topbar-title{
+    font-family:var(--serif);
+    font-size:15px; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--text-1); flex:1; text-align:center;
+  }
+  .topbar .spacer{width:38px;}
+
+  /* ===== HERO HEADER ===== */
+  .hero{
+    padding:28px 18px 22px;
+    position:relative;
+    background:radial-gradient(circle at 85% 0%, rgba(255,92,53,.16), transparent 60%);
+    border-bottom:1px solid var(--line);
+  }
+  .hero-eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--accent-soft); margin-bottom:8px; display:flex; align-items:center; gap:7px;
+  }
+  .hero-eyebrow::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--accent); display:inline-block;}
+  .hero h1{
+    font-family:var(--serif); font-size:25px; font-weight:600; letter-spacing:-.01em;
+    margin-bottom:6px; line-height:1.25;
+  }
+  .hero p{font-size:13.5px; color:var(--text-1); max-width:480px;}
+
+  /* ===== WRAP / LAYOUT ===== */
+  .wrap{ max-width:560px; margin:0 auto; padding:20px 16px 8px; }
+
+  form{ display:flex; flex-direction:column; gap:16px; }
+
+  .field{
+    display:flex; flex-direction:column; gap:7px;
+  }
+  .field label{
+    font-size:12.5px; font-weight:600; color:var(--text-1);
+    display:flex; align-items:center; gap:6px;
+    letter-spacing:.01em;
+  }
+  .field label .req{color:var(--accent); font-size:11px;}
+  .field label .opt{
+    font-size:10.5px; color:var(--text-2); font-weight:400;
+    background:var(--bg-2); padding:1px 7px; border-radius:6px; margin-left:auto;
+  }
+  .help-text{font-size:11.5px; color:var(--text-2); margin-top:-2px;}
+  .err-text{font-size:11.5px; color:var(--bad); display:none; align-items:center; gap:5px;}
+  .err-text.show{display:flex;}
+
+  input[type="text"], input[type="number"], input[type="url"], textarea, select{
+    width:100%;
+    background:var(--bg-2);
+    border:1.5px solid var(--line);
+    border-radius:11px;
+    padding:13px 14px;
+    font-size:14.5px;
+    color:var(--text-0);
+    font-family:var(--sans);
+    transition:.2s;
+    outline:none;
+  }
+  input::placeholder, textarea::placeholder{color:var(--text-2);}
+  input:focus, textarea:focus, select:focus{
+    border-color:var(--accent);
+    background:var(--bg-3);
+    box-shadow:0 0 0 3px rgba(255,92,53,.12);
+  }
+  .field.invalid input, .field.invalid textarea, .field.invalid select{
+    border-color:var(--bad);
+    box-shadow:0 0 0 3px rgba(255,92,92,.1);
+  }
+  .field.valid input, .field.valid textarea, .field.valid select{
+    border-color:var(--good);
+  }
+  textarea{ resize:vertical; min-height:110px; line-height:1.6; }
+
+  select{
+    appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a8a8b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 14px center;
+    padding-right:38px;
+    cursor:pointer;
+  }
+  select option{ background:var(--bg-2); color:var(--text-0); }
+
+  .price-input-wrap, .stock-input-wrap{ position:relative; }
+  .price-input-wrap input{ padding-left:42px; }
+  .price-prefix{
+    position:absolute; left:14px; top:50%; transform:translateY(-50%);
+    font-size:14.5px; color:var(--text-2); font-weight:600; pointer-events:none;
+  }
+  .price-input-wrap input:focus ~ .price-prefix,
+  .price-input-wrap.has-value .price-prefix{ color:var(--accent-soft); }
+
+  .char-count{
+    font-size:11px; color:var(--text-2); text-align:right; margin-top:-2px;
+  }
+
+  /* row split */
+  .row-split{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+  /* ===== Section divider ===== */
+  .section-label{
+    font-family:var(--serif);
+    font-size:13px; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--text-1); margin:8px 0 -2px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .section-label::before{
+    content:""; width:3px; height:13px; background:var(--accent);
+    border-radius:2px; display:inline-block;
+  }
+
+  /* ===== IMAGE UPLOAD ===== */
+  .upload-zone{
+    border:1.5px dashed var(--line);
+    border-radius:13px;
+    background:var(--bg-2);
+    padding:26px 16px;
+    text-align:center;
+    cursor:pointer;
+    transition:.2s;
+    position:relative;
+  }
+  .upload-zone:hover, .upload-zone.dragover{
+    border-color:var(--accent);
+    background:var(--accent-dim);
+  }
+  .upload-zone .uz-icon{font-size:26px; margin-bottom:8px; opacity:.8;}
+  .upload-zone .uz-title{font-size:13.5px; font-weight:600; color:var(--text-0); margin-bottom:3px;}
+  .upload-zone .uz-sub{font-size:11.5px; color:var(--text-2);}
+  .upload-zone input[type="file"]{
+    position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;
+  }
+
+  .preview-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px;
+  }
+  .preview-item{
+    position:relative; aspect-ratio:1/1; border-radius:11px; overflow:hidden;
+    background:var(--bg-2); border:1px solid var(--line);
+  }
+  .preview-item img{ width:100%; height:100%; object-fit:cover; }
+  .preview-remove{
+    position:absolute; top:5px; right:5px;
+    width:22px; height:22px; border-radius:50%;
+    background:rgba(0,0,0,.65); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; cursor:pointer; border:none;
+    backdrop-filter:blur(3px);
+  }
+  .preview-cover-tag{
+    position:absolute; bottom:0; left:0; right:0;
+    background:rgba(255,92,53,.9); color:#fff;
+    font-size:9.5px; font-weight:700; text-align:center; letter-spacing:.04em;
+    padding:3px 0; text-transform:uppercase;
+  }
+  .preview-uploading{
+    position:absolute; inset:0; background:rgba(10,10,13,.6);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .mini-spinner{
+    width:18px; height:18px; border-radius:50%;
+    border:2.5px solid rgba(255,255,255,.25); border-top-color:#fff;
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .preview-empty-slot{
+    aspect-ratio:1/1; border-radius:11px;
+    border:1.5px dashed var(--line);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text-2); font-size:20px;
+  }
+
+  /* ===== Sticky action bar ===== */
+  .action-bar{
+    position:fixed; bottom:0; left:0; right:0; z-index:80;
+    display:flex; align-items:center; gap:10px;
+    padding:12px 16px;
+    padding-bottom:calc(12px + env(safe-area-inset-bottom));
+    background:rgba(15,15,19,.92);
+    backdrop-filter:blur(16px);
+    border-top:1px solid var(--line);
+    max-width:560px; margin:0 auto;
+  }
+  @media(min-width:592px){
+    .action-bar{ left:50%; transform:translateX(-50%); width:560px; }
+  }
+  .btn-reset{
+    flex:0 0 110px; height:48px; border-radius:13px;
+    border:1.5px solid var(--line); background:var(--bg-2);
+    color:var(--text-1); font-weight:600; font-size:13.5px;
+    cursor:pointer; transition:.2s;
+  }
+  .btn-reset:hover{ border-color:var(--bad); color:var(--bad); }
+  .btn-publish{
+    flex:1; height:48px; border-radius:13px; border:none;
+    background:linear-gradient(135deg,var(--accent),#d8431f);
+    color:#fff; font-weight:700; font-size:14.5px;
+    cursor:pointer; transition:.2s;
+    box-shadow:0 6px 18px rgba(255,92,53,.28);
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn-publish:active{ transform:scale(.97); }
+  .btn-publish:disabled{
+    opacity:.5; cursor:not-allowed; box-shadow:none;
+  }
+  .btn-publish .spinner{
+    width:16px; height:16px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.35); border-top-color:#fff;
+    animation:spin .7s linear infinite; display:none;
+  }
+  .btn-publish.loading .spinner{ display:inline-block; }
+  .btn-publish.loading .btxt{ display:none; }
+
+  /* ===== Toast ===== */
+  .toast{
+    position:fixed; bottom:108px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--bg-3); border:1px solid var(--line);
+    color:var(--text-0); font-size:13.5px; font-weight:500;
+    padding:11px 20px; border-radius:30px; z-index:300;
+    opacity:0; transition:.3s; pointer-events:none;
+    display:flex; align-items:center; gap:8px;
+    box-shadow:0 10px 30px rgba(0,0,0,.4);
+    white-space:nowrap; max-width:90vw;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast .tdot{flex-shrink:0;}
+
+  /* ===== Success overlay ===== */
+  .success-overlay{
+    position:fixed; inset:0; z-index:400;
+    background:rgba(8,8,10,.92);
+    backdrop-filter:blur(6px);
+    display:none; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .success-overlay.open{ display:flex; }
+  .success-card{
+    background:var(--bg-1); border:1px solid var(--line);
+    border-radius:18px; padding:32px 26px; text-align:center;
+    max-width:340px; animation:popIn .35s ease;
+  }
+  @keyframes popIn{ from{opacity:0; transform:scale(.92) translateY(8px);} to{opacity:1; transform:scale(1) translateY(0);} }
+  .success-icon{
+    width:60px; height:60px; border-radius:50%;
+    background:rgba(61,220,132,.12); color:var(--good);
+    display:flex; align-items:center; justify-content:center;
+    font-size:28px; margin:0 auto 16px;
+  }
+  .success-card h3{ font-family:var(--serif); font-size:19px; margin-bottom:8px; }
+  .success-card p{ font-size:13.5px; color:var(--text-1); margin-bottom:22px; line-height:1.6; }
+  .success-actions{ display:flex; gap:10px; }
+  .success-actions a, .success-actions button{
+    flex:1; height:44px; border-radius:11px; font-size:13.5px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    border:1.5px solid var(--line); background:var(--bg-2); color:var(--text-0);
+    transition:.2s;
+  }
+  .success-actions .primary{
+    border:none; background:linear-gradient(135deg,var(--accent),#d8431f); color:#fff;
+  }
+
+  @media(max-width:380px){
+    .row-split{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <a href="dashboard.html#dashboard" class="icon-btn" aria-label="Kembali ke Dashboard">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <div class="topbar-title">Jual Produk</div>
+  <div class="spacer"></div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Lapak Rapi Store</div>
+  <h1>Pajang produk barumu</h1>
+  <p>Lengkapi detail di bawah supaya pembeli yakin dan cepat checkout. Foto jelas dan deskripsi lengkap = lebih cepat laku.</p>
+</div>
+
+<div class="wrap">
+  <form id="sellForm" novalidate>
+
+    <!-- Nama Produk -->
+    <div class="field" id="field-name">
+      <label for="inpName">Nama Produk <span class="req">*</span></label>
+      <input type="text" id="inpName" name="name" placeholder="Contoh: Kaos Polos Cotton Combed 30s" maxlength="100" autocomplete="off">
+      <div class="char-count"><span id="nameCount">0</span>/100</div>
+      <div class="err-text" id="err-name">⚠ Nama produk wajib diisi (min. 5 karakter)</div>
+    </div>
+
+    <!-- Kategori & Harga -->
+    <div class="row-split">
+      <div class="field" id="field-category">
+        <label for="inpCategory">Kategori <span class="req">*</span></label>
+        <select id="inpCategory" name="category">
+          <option value="" disabled selected>Pilih kategori</option>
+          <option value="Fashion Pria">Fashion Pria</option>
+          <option value="Fashion Wanita">Fashion Wanita</option>
+          <option value="Elektronik">Elektronik</option>
+          <option value="Komputer & Aksesoris">Komputer & Aksesoris</option>
+          <option value="Handphone & Tablet">Handphone & Tablet</option>
+          <option value="Kesehatan & Kecantikan">Kesehatan & Kecantikan</option>
+          <option value="Makanan & Minuman">Makanan & Minuman</option>
+          <option value="Hobi & Koleksi">Hobi & Koleksi</option>
+          <option value="Rumah Tangga">Rumah Tangga</option>
+          <option value="Olahraga & Outdoor">Olahraga & Outdoor</option>
+          <option value="Otomotif">Otomotif</option>
+          <option value="Jasa & Digital">Jasa & Digital</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+        <div class="err-text" id="err-category">⚠ Pilih salah satu kategori</div>
+      </div>
+
+      <div class="field" id="field-price">
+        <label for="inpPrice">Harga <span class="req">*</span></label>
+        <div class="price-input-wrap" id="priceWrap">
+          <span class="price-prefix">Rp</span>
+          <input type="number" id="inpPrice" name="price" placeholder="0" min="0" step="100" inputmode="numeric">
+        </div>
+        <div class="err-text" id="err-price">⚠ Harga harus lebih dari Rp0</div>
+      </div>
+    </div>
+
+    <!-- Stok -->
+    <div class="field" id="field-stock">
+      <label for="inpStock">Stok <span class="req">*</span></label>
+      <input type="number" id="inpStock" name="stock" placeholder="Jumlah stok tersedia" min="0" step="1" inputmode="numeric">
+      <div class="err-text" id="err-stock">⚠ Stok wajib diisi (angka ≥ 0)</div>
+    </div>
+
+    <!-- Deskripsi -->
+    <div class="field" id="field-description">
+      <label for="inpDesc">Deskripsi Lengkap <span class="req">*</span></label>
+      <textarea id="inpDesc" name="description" placeholder="Jelaskan bahan, ukuran, kondisi, cara pakai, dan keunggulan produkmu..." maxlength="2000"></textarea>
+      <div class="char-count"><span id="descCount">0</span>/2000</div>
+      <div class="err-text" id="err-description">⚠ Deskripsi minimal 20 karakter</div>
+    </div>
+
+    <!-- Upload Gambar -->
+    <div class="field" id="field-images">
+      <label>Foto Produk <span class="req">*</span> <span class="opt">Maks. 6 foto</span></label>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="inpImages" accept="image/png, image/jpeg, image/webp" multiple>
+        <div class="uz-icon">🖼️</div>
+        <div class="uz-title">Ketuk atau seret foto ke sini</div>
+        <div class="uz-sub">JPG, PNG, atau WEBP — maks 5MB per foto</div>
+      </div>
+      <div class="preview-grid" id="previewGrid"></div>
+      <div class="err-text" id="err-images">⚠ Unggah minimal 1 foto produk</div>
+    </div>
+
+    <!-- Link preview/demo -->
+    <div class="section-label">Tambahan</div>
+    <div class="field" id="field-previewLink">
+      <label for="inpPreviewLink">Link Preview / Demo <span class="opt">Opsional</span></label>
+      <input type="url" id="inpPreviewLink" name="previewLink" placeholder="https://contoh.com/demo-produk" autocomplete="off">
+      <div class="help-text">Cocok untuk produk digital, video demo, atau katalog tambahan.</div>
+      <div class="err-text" id="err-previewLink">⚠ Format link tidak valid (harus diawali https://)</div>
+    </div>
+
+  </form>
+</div>
+
+<!-- ACTION BAR -->
+<div class="action-bar">
+  <button type="button" class="btn-reset" id="btnReset">Reset</button>
+  <button type="button" class="btn-publish" id="btnPublish">
+    <span class="spinner"></span>
+    <span class="btxt">Publikasikan</span>
+  </button>
+</div>
+
+<div class="toast" id="toast"><span class="tdot">●</span><span id="toastMsg">Berhasil</span></div>
+
+<!-- SUCCESS OVERLAY -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-card">
+    <div class="success-icon">✓</div>
+    <h3>Produk Berhasil Dipublikasikan!</h3>
+    <p>Produkmu sekarang tampil di marketplace dan bisa dilihat pembeli. Kamu bisa mengedit detailnya kapan saja.</p>
+    <div class="success-actions">
+      <a href="dashboard.html#dashboard">Ke Dashboard</a>
+      <button class="primary" id="btnGoEdit">Edit Produk</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =======================================================
+   FIREBASE INIT
+======================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyBJJjcICAkbVWjrw5-zYMzcKqPGhS0nS0I",
+  authDomain: "piwstore.firebaseapp.com",
+  projectId: "piwstore",
+  storageBucket: "piwstore.firebasestorage.app",
+  messagingSenderId: "419258630997",
+  appId: "1:419258630997:web:aefc0e34cc4b7ca16d25dc",
+  measurementId: "G-M6NHQMHQV4"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* =======================================================
+   IMGBB CONFIG (pengganti Firebase Storage)
+======================================================= */
+const IMGBB_API_KEY = "48edaa743dba8ad51e9d8c0d52b208dd";
+const IMGBB_UPLOAD_URL = "https://api.imgbb.com/1/upload";
+
+/* =======================================================
+   STATE
+======================================================= */
+let currentUser = null;
+let selectedFiles = []; // { file, previewUrl, id }
+const MAX_IMAGES = 6;
+const MAX_FILE_MB = 5;
+let publishedProductId = null;
+
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  if (!user){
+    showToast('Silakan masuk untuk menjual produk', false);
+  }
+});
+
+/* =======================================================
+   HELPERS
+======================================================= */
+function showToast(msg, ok=true){
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.querySelector('.tdot').style.color = ok ? 'var(--good)' : 'var(--bad)';
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=> t.classList.remove('show'), 2600);
+}
+function setFieldState(fieldId, valid, errId){
+  const f = document.getElementById(fieldId);
+  const e = document.getElementById(errId);
+  f.classList.toggle('invalid', !valid);
+  f.classList.toggle('valid', valid && f.querySelector('input,select,textarea').value.trim() !== '');
+  if (e) e.classList.toggle('show', !valid);
+}
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+/* =======================================================
+   CHAR COUNTERS
+======================================================= */
+const inpName = document.getElementById('inpName');
+const nameCount = document.getElementById('nameCount');
+inpName.addEventListener('input', () => {
+  nameCount.textContent = inpName.value.length;
+  validateName();
+});
+
+const inpDesc = document.getElementById('inpDesc');
+const descCount = document.getElementById('descCount');
+inpDesc.addEventListener('input', () => {
+  descCount.textContent = inpDesc.value.length;
+  validateDescription();
+});
+
+/* price prefix highlight */
+const priceWrap = document.getElementById('priceWrap');
+const inpPrice = document.getElementById('inpPrice');
+inpPrice.addEventListener('input', () => {
+  priceWrap.classList.toggle('has-value', inpPrice.value !== '');
+  validatePrice();
+});
+
+document.getElementById('inpStock').addEventListener('input', validateStock);
+document.getElementById('inpCategory').addEventListener('change', validateCategory);
+document.getElementById('inpPreviewLink').addEventListener('input', validatePreviewLink);
+
+/* =======================================================
+   VALIDATION FUNCTIONS
+======================================================= */
+function validateName(){
+  const v = inpName.value.trim();
+  const ok = v.length >= 5;
+  setFieldState('field-name', ok, 'err-name');
+  return ok;
+}
+function validateCategory(){
+  const v = document.getElementById('inpCategory').value;
+  const ok = v !== '';
+  setFieldState('field-category', ok, 'err-category');
+  return ok;
+}
+function validatePrice(){
+  const v = parseFloat(inpPrice.value);
+  const ok = !isNaN(v) && v > 0;
+  setFieldState('field-price', ok, 'err-price');
+  return ok;
+}
+function validateStock(){
+  const v = document.getElementById('inpStock').value;
+  const n = parseInt(v, 10);
+  const ok = v !== '' && !isNaN(n) && n >= 0;
+  setFieldState('field-stock', ok, 'err-stock');
+  return ok;
+}
+function validateDescription(){
+  const v = inpDesc.value.trim();
+  const ok = v.length >= 20;
+  setFieldState('field-description', ok, 'err-description');
+  return ok;
+}
+function validateImages(){
+  const ok = selectedFiles.length > 0;
+  const f = document.getElementById('field-images');
+  const e = document.getElementById('err-images');
+  f.classList.toggle('invalid', !ok);
+  e.classList.toggle('show', !ok);
+  return ok;
+}
+function validatePreviewLink(){
+  const v = document.getElementById('inpPreviewLink').value.trim();
+  if (v === ''){
+    setFieldState('field-previewLink', true, 'err-previewLink');
+    return true;
+  }
+  const ok = /^https?:\/\/.+\..+/.test(v);
+  setFieldState('field-previewLink', ok, 'err-previewLink');
+  return ok;
+}
+function validateAll(){
+  const results = [
+    validateName(),
+    validateCategory(),
+    validatePrice(),
+    validateStock(),
+    validateDescription(),
+    validateImages(),
+    validatePreviewLink()
+  ];
+  return results.every(Boolean);
+}
+
+/* =======================================================
+   IMAGE UPLOAD + PREVIEW
+======================================================= */
+const uploadZone = document.getElementById('uploadZone');
+const inpImages = document.getElementById('inpImages');
+const previewGrid = document.getElementById('previewGrid');
+
+inpImages.addEventListener('change', (e) => handleFiles(e.target.files));
+
+['dragover','dragenter'].forEach(evt => {
+  uploadZone.addEventListener(evt, (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+});
+['dragleave','drop'].forEach(evt => {
+  uploadZone.addEventListener(evt, (e) => { e.preventDefault(); uploadZone.classList.remove('dragover'); });
+});
+uploadZone.addEventListener('drop', (e) => {
+  if (e.dataTransfer.files && e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+});
+
+function handleFiles(fileList){
+  const incoming = Array.from(fileList);
+  let rejected = 0;
+
+  for (const file of incoming){
+    if (selectedFiles.length >= MAX_IMAGES){
+      showToast(`Maksimal ${MAX_IMAGES} foto`, false);
+      break;
+    }
+    if (!file.type.startsWith('image/')){
+      rejected++; continue;
+    }
+    if (file.size > MAX_FILE_MB * 1024 * 1024){
+      rejected++; continue;
+    }
+    selectedFiles.push({
+      id: uid(),
+      file,
+      previewUrl: URL.createObjectURL(file)
+    });
+  }
+
+  if (rejected > 0){
+    showToast(`${rejected} foto dilewati (format/ukuran tidak sesuai)`, false);
+  }
+  inpImages.value = '';
+  renderPreviews();
+  validateImages();
+}
+
+function renderPreviews(){
+  previewGrid.innerHTML = selectedFiles.map((item, idx) => `
+    <div class="preview-item" data-id="${item.id}">
+      <img src="${item.previewUrl}" alt="Preview ${idx+1}">
+      ${idx === 0 ? '<div class="preview-cover-tag">Cover</div>' : ''}
+      <button type="button" class="preview-remove" data-remove="${item.id}" aria-label="Hapus foto">✕</button>
+    </div>
+  `).join('');
+
+  previewGrid.querySelectorAll('[data-remove]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-remove');
+      const target = selectedFiles.find(f => f.id === id);
+      if (target) URL.revokeObjectURL(target.previewUrl);
+      selectedFiles = selectedFiles.filter(f => f.id !== id);
+      renderPreviews();
+      validateImages();
+    });
+  });
+}
+
+/* =======================================================
+   UPLOAD IMAGES TO IMGBB
+======================================================= */
+function fileToBase64(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]); // strip data:...;base64,
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadOneToImgbb(file){
+  const base64 = await fileToBase64(file);
+  const formData = new FormData();
+  formData.append('key', IMGBB_API_KEY);
+  formData.append('image', base64);
+
+  const res = await fetch(IMGBB_UPLOAD_URL, {
+    method: 'POST',
+    body: formData
+  });
+  const json = await res.json();
+
+  if (!json.success){
+    const reason = (json.error && json.error.message) || 'Upload ke ImgBB gagal';
+    throw new Error(reason);
+  }
+  return json.data.url; // URL gambar permanen di ImgBB
+}
+
+async function uploadImagesToImgbb(onProgress){
+  const urls = [];
+  for (let i = 0; i < selectedFiles.length; i++){
+    if (onProgress) onProgress(i + 1, selectedFiles.length);
+    const item = selectedFiles[i];
+    const url = await uploadOneToImgbb(item.file);
+    urls.push(url);
+  }
+  return urls;
+}
+
+/* =======================================================
+   PUBLISH PRODUCT
+======================================================= */
+const btnPublish = document.getElementById('btnPublish');
+
+btnPublish.addEventListener('click', async () => {
+  if (!currentUser){
+    showToast('Silakan masuk terlebih dahulu', false);
+    return;
+  }
+
+  const valid = validateAll();
+  if (!valid){
+    showToast('Lengkapi semua data yang wajib diisi', false);
+    const firstInvalid = document.querySelector('.field.invalid');
+    if (firstInvalid) firstInvalid.scrollIntoView({ behavior:'smooth', block:'center' });
+    return;
+  }
+
+  btnPublish.disabled = true;
+  btnPublish.classList.add('loading');
+  document.getElementById('btnReset').disabled = true;
+
+  try{
+    const docRef = db.collection('products').doc();
+    const productId = docRef.id;
+
+    const imageUrls = await uploadImagesToImgbb((done, total) => {
+      showToast(`Mengunggah foto ${done}/${total}...`);
+    });
+
+    const previewLink = document.getElementById('inpPreviewLink').value.trim();
+
+    await docRef.set({
+      name: inpName.value.trim(),
+      category: document.getElementById('inpCategory').value,
+      price: parseFloat(inpPrice.value),
+      stock: parseInt(document.getElementById('inpStock').value, 10),
+      description: inpDesc.value.trim(),
+      images: imageUrls,
+      imageUrl: imageUrls[0] || '',
+      previewLink: previewLink || null,
+      ownerId: currentUser.uid,
+      sellerName: currentUser.displayName || 'Penjual Rapi Store',
+      rating: 0,
+      reviewCount: 0,
+      sold: 0,
+      viewCount: 0,
+      status: 'active',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    publishedProductId = productId;
+    document.getElementById('successOverlay').classList.add('open');
+    showToast('Produk berhasil dipublikasikan');
+  }catch(err){
+    console.error(err);
+    showToast('Gagal mempublikasikan produk: ' + (err.message || 'coba lagi'), false);
+  }finally{
+    btnPublish.disabled = false;
+    btnPublish.classList.remove('loading');
+    document.getElementById('btnReset').disabled = false;
+  }
+});
+
+document.getElementById('btnGoEdit').addEventListener('click', () => {
+  if (publishedProductId){
+    window.location.href = `edit-produk.html#edit-produk?id=${publishedProductId}`;
+  } else {
+    window.location.href = 'edit-produk.html#edit-produk';
+  }
+});
+
+/* =======================================================
+   RESET FORM
+======================================================= */
+document.getElementById('btnReset').addEventListener('click', () => {
+  if (!confirm('Reset seluruh form? Data yang sudah diisi akan hilang.')) return;
+
+  document.getElementById('sellForm').reset();
+  selectedFiles.forEach(f => URL.revokeObjectURL(f.previewUrl));
+  selectedFiles = [];
+  renderPreviews();
+  nameCount.textContent = '0';
+  descCount.textContent = '0';
+  priceWrap.classList.remove('has-value');
+
+  document.querySelectorAll('.field').forEach(f => {
+    f.classList.remove('invalid','valid');
+  });
+  document.querySelectorAll('.err-text').forEach(e => e.classList.remove('show'));
+
+  showToast('Form telah direset');
+});
+
+/* prevent native form submit (enter key) */
+document.getElementById('sellForm').addEventListener('submit', (e) => e.preventDefault());
+</script>
+
+</body>
+</html>
