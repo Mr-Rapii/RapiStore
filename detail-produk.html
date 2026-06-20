@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Detail Produk - RAPI STORE</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+  :root{
+    --bg-0:#0a0a0d;
+    --bg-1:#121217;
+    --bg-2:#191920;
+    --bg-3:#21212a;
+    --line:#2a2a35;
+    --text-0:#f3f3f6;
+    --text-1:#a8a8b8;
+    --text-2:#6e6e80;
+    --accent:#ff5c35;
+    --accent-dim:#3a2018;
+    --accent-soft:#ffb199;
+    --gold:#ffc24b;
+    --good:#3ddc84;
+    --bad:#ff5c5c;
+    --radius:14px;
+    --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --sans: "Inter", "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", monospace;
+  }
+
+  @font-face{
+    font-family:"Fraunces";
+    src:local("Georgia");
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg-0);
+    color:var(--text-0);
+    font-family:var(--sans);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:84px;
+    overflow-x:hidden;
+  }
+  a{color:inherit; text-decoration:none;}
+  img{max-width:100%; display:block;}
+
+  /* ===== noise texture overlay ===== */
+  .grain{
+    position:fixed; inset:0; pointer-events:none; z-index:999;
+    opacity:.035; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ===== TOP BAR ===== */
+  .topbar{
+    position:sticky; top:0; z-index:60;
+    display:flex; align-items:center; gap:12px;
+    padding:14px 16px;
+    background:rgba(10,10,13,.78);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  .icon-btn{
+    width:38px; height:38px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--bg-2); border:1px solid var(--line);
+    color:var(--text-0); cursor:pointer; flex-shrink:0;
+    transition:.2s;
+  }
+  .icon-btn:hover{background:var(--bg-3); border-color:var(--accent);}
+  .topbar-title{
+    font-family:var(--serif);
+    font-size:15px; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--text-1); flex:1; text-align:center;
+  }
+  .topbar .spacer{width:38px;}
+
+  /* ===== GALLERY ===== */
+  .gallery{
+    position:relative;
+    background:var(--bg-1);
+  }
+  .gallery-track{
+    display:flex; overflow-x:auto; scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+  }
+  .gallery-track::-webkit-scrollbar{display:none;}
+  .gallery-slide{
+    flex:0 0 100%; scroll-snap-align:start;
+    aspect-ratio:1/1;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden; position:relative;
+    background:radial-gradient(circle at 50% 30%, #1c1c24, #0c0c0f 75%);
+    cursor:zoom-in;
+  }
+  .gallery-slide img{
+    width:100%; height:100%; object-fit:cover;
+    transition:transform .35s ease;
+    will-change:transform;
+  }
+  .badge-discount{
+    position:absolute; top:16px; left:16px; z-index:5;
+    background:var(--accent); color:#fff;
+    font-family:var(--mono); font-size:12px; font-weight:700;
+    padding:5px 10px; border-radius:8px;
+    letter-spacing:.02em;
+    box-shadow:0 4px 14px rgba(255,92,53,.4);
+  }
+  .gallery-dots{
+    position:absolute; bottom:14px; left:0; right:0;
+    display:flex; justify-content:center; gap:6px; z-index:5;
+  }
+  .gdot{
+    width:6px; height:6px; border-radius:50%;
+    background:rgba(255,255,255,.3); transition:.25s;
+  }
+  .gdot.active{background:var(--accent); width:18px; border-radius:4px;}
+  .gallery-hint{
+    position:absolute; bottom:14px; right:16px; z-index:5;
+    font-size:11px; color:var(--text-1);
+    background:rgba(0,0,0,.45); padding:4px 9px; border-radius:20px;
+    display:flex; align-items:center; gap:4px;
+    backdrop-filter:blur(4px);
+  }
+
+  /* Zoom overlay */
+  .zoom-overlay{
+    position:fixed; inset:0; z-index:200;
+    background:rgba(5,5,7,.96);
+    display:none; align-items:center; justify-content:center;
+    touch-action:none;
+  }
+  .zoom-overlay.open{display:flex;}
+  .zoom-overlay img{
+    max-width:94vw; max-height:80vh; object-fit:contain;
+    transition:transform .15s ease-out;
+  }
+  .zoom-close{
+    position:absolute; top:18px; right:18px;
+    width:40px; height:40px; border-radius:50%;
+    background:var(--bg-3); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text-0); font-size:18px;
+  }
+  .zoom-tip{
+    position:absolute; bottom:24px; left:0; right:0;
+    text-align:center; color:var(--text-2); font-size:12px;
+  }
+
+  /* ===== CONTENT WRAP ===== */
+  .wrap{ padding:20px 16px 8px; }
+
+  .price-row{
+    display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+    margin-bottom:6px;
+  }
+  .price-now{
+    font-family:var(--serif);
+    font-size:30px; font-weight:600; color:var(--accent);
+    letter-spacing:-.01em;
+  }
+  .price-old{
+    font-size:15px; color:var(--text-2); text-decoration:line-through;
+  }
+  .price-discount-tag{
+    font-size:12px; font-weight:700; color:#fff;
+    background:linear-gradient(135deg,var(--accent),#c43d1f);
+    padding:2px 8px; border-radius:6px;
+  }
+  .sold-count{
+    font-size:12.5px; color:var(--text-2); margin-bottom:14px;
+  }
+
+  .product-name{
+    font-family:var(--serif);
+    font-size:21px; font-weight:600; line-height:1.32;
+    margin-bottom:10px; color:var(--text-0);
+  }
+
+  .meta-row{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    font-size:13px; color:var(--text-1); margin-bottom:18px;
+    padding-bottom:18px; border-bottom:1px solid var(--line);
+  }
+  .meta-item{display:flex; align-items:center; gap:5px;}
+  .star{color:var(--gold);}
+  .stock-pill{
+    font-size:11.5px; font-weight:600; padding:3px 10px;
+    border-radius:20px; letter-spacing:.02em;
+  }
+  .stock-pill.in{background:rgba(61,220,132,.12); color:var(--good);}
+  .stock-pill.low{background:rgba(255,194,75,.12); color:var(--gold);}
+  .stock-pill.out{background:rgba(255,92,92,.12); color:var(--bad);}
+
+  /* ===== SECTION CARD ===== */
+  .section{
+    background:var(--bg-1);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    margin-bottom:14px;
+  }
+  .section-title{
+    font-family:var(--serif);
+    font-size:14px; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--text-1); margin-bottom:12px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .section-title::before{
+    content:""; width:3px; height:13px; background:var(--accent);
+    border-radius:2px; display:inline-block;
+  }
+
+  /* Seller card */
+  .seller-card{ display:flex; align-items:center; gap:13px; }
+  .seller-avatar{
+    width:52px; height:52px; border-radius:50%;
+    background:var(--bg-3); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--serif); font-size:19px; color:var(--accent);
+    flex-shrink:0; overflow:hidden;
+  }
+  .seller-avatar img{width:100%; height:100%; object-fit:cover;}
+  .seller-info{flex:1; min-width:0;}
+  .seller-name{
+    font-size:15px; font-weight:600; display:flex; align-items:center; gap:6px;
+    margin-bottom:3px;
+  }
+  .seller-level{
+    font-size:10.5px; font-weight:700; text-transform:uppercase;
+    padding:2px 7px; border-radius:5px; letter-spacing:.03em;
+    background:var(--accent-dim); color:var(--accent-soft);
+  }
+  .seller-stats{
+    font-size:12.5px; color:var(--text-2); display:flex; gap:10px; flex-wrap:wrap;
+  }
+  .seller-visit{
+    flex-shrink:0; font-size:12.5px; font-weight:600; color:var(--accent);
+    border:1px solid var(--accent); padding:8px 14px; border-radius:9px;
+    white-space:nowrap;
+  }
+
+  /* Description */
+  .desc-text{
+    font-size:14px; color:var(--text-1); line-height:1.7;
+    white-space:pre-line;
+  }
+  .desc-text.clamped{
+    display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .desc-toggle{
+    margin-top:10px; font-size:13px; color:var(--accent); font-weight:600;
+    cursor:pointer; display:inline-block;
+  }
+
+  .spec-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .spec-item{font-size:13px;}
+  .spec-label{color:var(--text-2); font-size:11.5px; margin-bottom:2px;}
+  .spec-value{color:var(--text-0); font-weight:500;}
+
+  /* ===== Rating summary ===== */
+  .rating-summary{
+    display:flex; gap:20px; align-items:center;
+    margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--line);
+  }
+  .rating-big{
+    font-family:var(--serif); font-size:38px; font-weight:600; color:var(--gold);
+    line-height:1;
+  }
+  .rating-stars-row{ font-size:13px; color:var(--gold); margin:4px 0 2px;}
+  .rating-count{font-size:12px; color:var(--text-2);}
+  .rating-bars{flex:1;}
+  .rbar-row{display:flex; align-items:center; gap:8px; margin-bottom:5px;}
+  .rbar-label{font-size:11.5px; color:var(--text-2); width:34px; flex-shrink:0;}
+  .rbar-track{flex:1; height:5px; background:var(--bg-3); border-radius:4px; overflow:hidden;}
+  .rbar-fill{height:100%; background:var(--gold); border-radius:4px;}
+
+  .review-item{
+    padding:14px 0; border-bottom:1px solid var(--line);
+  }
+  .review-item:last-child{border-bottom:none; padding-bottom:0;}
+  .review-head{display:flex; align-items:center; gap:10px; margin-bottom:6px;}
+  .review-avatar{
+    width:32px; height:32px; border-radius:50%; background:var(--bg-3);
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700; color:var(--text-1); flex-shrink:0;
+  }
+  .review-name{font-size:13.5px; font-weight:600;}
+  .review-stars{font-size:11px; color:var(--gold);}
+  .review-date{font-size:11px; color:var(--text-2); margin-left:auto;}
+  .review-text{font-size:13.5px; color:var(--text-1); line-height:1.6; padding-left:42px;}
+  .review-empty{font-size:13.5px; color:var(--text-2); text-align:center; padding:14px 0;}
+
+  /* ===== Related products ===== */
+  .related-scroll{
+    display:flex; gap:12px; overflow-x:auto; padding-bottom:4px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .related-scroll::-webkit-scrollbar{display:none;}
+  .related-card{
+    flex:0 0 150px;
+    background:var(--bg-2); border:1px solid var(--line); border-radius:12px;
+    overflow:hidden; cursor:pointer; transition:.2s;
+  }
+  .related-card:active{transform:scale(.97);}
+  .related-img{
+    width:100%; aspect-ratio:1/1; object-fit:cover; background:var(--bg-3);
+  }
+  .related-body{padding:10px;}
+  .related-name{
+    font-size:12.5px; line-height:1.35; margin-bottom:6px; height:34px;
+    overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  }
+  .related-price{font-size:13px; font-weight:700; color:var(--accent);}
+
+  /* ===== skeleton ===== */
+  .skel{
+    background:linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 37%, var(--bg-2) 63%);
+    background-size:400% 100%;
+    animation:skel 1.4s ease infinite;
+    border-radius:8px;
+  }
+  @keyframes skel{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
+
+  .empty-state{
+    text-align:center; padding:60px 20px; color:var(--text-2);
+  }
+  .empty-state .em-icon{font-size:38px; margin-bottom:10px;}
+
+  /* ===== Bottom action bar ===== */
+  .action-bar{
+    position:fixed; bottom:0; left:0; right:0; z-index:80;
+    display:flex; align-items:center; gap:8px;
+    padding:10px 14px;
+    padding-bottom:calc(10px + env(safe-area-inset-bottom));
+    background:rgba(15,15,19,.92);
+    backdrop-filter:blur(16px);
+    border-top:1px solid var(--line);
+  }
+  .ab-icon{
+    width:46px; height:46px; border-radius:13px; flex-shrink:0;
+    background:var(--bg-2); border:1px solid var(--line);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:1px; cursor:pointer; transition:.2s; position:relative;
+  }
+  .ab-icon:active{transform:scale(.93); border-color:var(--accent);}
+  .ab-icon span{font-size:9px; color:var(--text-2);}
+  .ab-icon.wished{ border-color:var(--accent); }
+  .ab-icon.wished svg{ fill:var(--accent); stroke:var(--accent); }
+  .ab-badge{
+    position:absolute; top:-5px; right:-5px;
+    background:var(--accent); color:#fff; font-size:9.5px; font-weight:700;
+    width:17px; height:17px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .ab-cart{
+    flex:1; height:46px; border-radius:13px; border:1.5px solid var(--accent);
+    background:transparent; color:var(--accent); font-weight:700; font-size:13.5px;
+    cursor:pointer; transition:.2s;
+  }
+  .ab-cart:active{background:var(--accent-dim);}
+  .ab-buy{
+    flex:1; height:46px; border-radius:13px; border:none;
+    background:linear-gradient(135deg,var(--accent),#d8431f);
+    color:#fff; font-weight:700; font-size:13.5px;
+    cursor:pointer; transition:.2s;
+    box-shadow:0 6px 18px rgba(255,92,53,.28);
+  }
+  .ab-buy:active{transform:scale(.97);}
+  .ab-buy:disabled, .ab-cart:disabled{
+    opacity:.4; cursor:not-allowed; box-shadow:none;
+  }
+
+  /* toast */
+  .toast{
+    position:fixed; bottom:96px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--bg-3); border:1px solid var(--line);
+    color:var(--text-0); font-size:13.5px; font-weight:500;
+    padding:11px 20px; border-radius:30px; z-index:300;
+    opacity:0; transition:.3s; pointer-events:none;
+    display:flex; align-items:center; gap:8px;
+    box-shadow:0 10px 30px rgba(0,0,0,.4);
+    white-space:nowrap;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast .tcheck{color:var(--good);}
+
+  @media(min-width:760px){
+    .wrap, .topbar, .action-bar{max-width:760px; margin:0 auto;}
+    .gallery{max-width:760px; margin:0 auto;}
+    body{display:flex; flex-direction:column; align-items:center;}
+    .action-bar{left:50%; transform:translateX(-50%); width:760px;}
+    .gallery-slide{aspect-ratio:4/3;}
+  }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <a href="marketplace.html#marketplace" class="icon-btn" aria-label="Kembali ke Marketplace">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <div class="topbar-title">Detail Produk</div>
+  <a href="keranjang.html#keranjang" class="icon-btn" aria-label="Keranjang">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+  </a>
+</div>
+
+<!-- GALLERY -->
+<div class="gallery">
+  <div class="gallery-track" id="galleryTrack">
+    <div class="gallery-slide skel" style="min-height:340px;"></div>
+  </div>
+  <div class="gallery-dots" id="galleryDots"></div>
+  <div class="gallery-hint">⤢ Ketuk untuk zoom</div>
+</div>
+
+<!-- ZOOM OVERLAY -->
+<div class="zoom-overlay" id="zoomOverlay">
+  <div class="zoom-close" id="zoomClose">✕</div>
+  <img id="zoomImg" src="" alt="Zoom produk">
+  <div class="zoom-tip">Cubit / scroll untuk perbesar &middot; geser untuk menjelajah</div>
+</div>
+
+<div class="wrap" id="contentWrap">
+
+  <!-- price -->
+  <div class="price-row" id="priceRow">
+    <div class="skel" style="width:140px; height:30px;"></div>
+  </div>
+  <div class="sold-count" id="soldCount"></div>
+
+  <div class="product-name" id="productName">
+    <div class="skel" style="width:90%; height:21px; margin-bottom:6px;"></div>
+    <div class="skel" style="width:60%; height:21px;"></div>
+  </div>
+
+  <div class="meta-row" id="metaRow">
+    <div class="skel" style="width:100%; height:18px;"></div>
+  </div>
+
+  <!-- Spesifikasi / Stok -->
+  <div class="section">
+    <div class="section-title">Spesifikasi</div>
+    <div class="spec-grid" id="specGrid">
+      <div class="skel" style="width:100%; height:34px;"></div>
+      <div class="skel" style="width:100%; height:34px;"></div>
+    </div>
+  </div>
+
+  <!-- Deskripsi -->
+  <div class="section">
+    <div class="section-title">Deskripsi Produk</div>
+    <div class="desc-text clamped" id="descText">Memuat deskripsi...</div>
+    <span class="desc-toggle" id="descToggle">Lihat selengkapnya ▾</span>
+  </div>
+
+  <!-- Penjual -->
+  <div class="section">
+    <div class="section-title">Info Penjual</div>
+    <div class="seller-card" id="sellerCard">
+      <div class="seller-avatar skel" style="width:52px; height:52px;"></div>
+      <div class="seller-info">
+        <div class="skel" style="width:120px; height:14px; margin-bottom:6px;"></div>
+        <div class="skel" style="width:160px; height:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rating & Review -->
+  <div class="section">
+    <div class="section-title">Rating &amp; Ulasan</div>
+    <div class="rating-summary" id="ratingSummary">
+      <div class="skel" style="width:60px; height:38px;"></div>
+      <div style="flex:1" class="skel"></div>
+    </div>
+    <div id="reviewList">
+      <div class="review-empty">Memuat ulasan...</div>
+    </div>
+  </div>
+
+  <!-- Produk terkait -->
+  <div class="section">
+    <div class="section-title">Produk Terkait</div>
+    <div class="related-scroll" id="relatedScroll">
+      <div class="related-card"><div class="related-img skel"></div></div>
+      <div class="related-card"><div class="related-img skel"></div></div>
+      <div class="related-card"><div class="related-img skel"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ACTION BAR -->
+<div class="action-bar">
+  <div class="ab-icon" id="btnWishlist" aria-label="Tambahkan ke Wishlist">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 10-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+    <span>Wishlist</span>
+  </div>
+  <div class="ab-icon" id="btnCartIcon" aria-label="Lihat Keranjang">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+    <span>Keranjang</span>
+    <div class="ab-badge" id="cartBadge" style="display:none;">0</div>
+  </div>
+  <button class="ab-cart" id="btnAddCart">+ Keranjang</button>
+  <button class="ab-buy" id="btnBuyNow">Beli Sekarang</button>
+</div>
+
+<div class="toast" id="toast"><span class="tcheck">●</span><span id="toastMsg">Berhasil</span></div>
+
+<script>
+/* =======================================================
+   FIREBASE INIT
+======================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyBJJjcICAkbVWjrw5-zYMzcKqPGhS0nS0I",
+  authDomain: "piwstore.firebaseapp.com",
+  projectId: "piwstore",
+  storageBucket: "piwstore.firebasestorage.app",
+  messagingSenderId: "419258630997",
+  appId: "1:419258630997:web:aefc0e34cc4b7ca16d25dc",
+  measurementId: "G-M6NHQMHQV4"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* =======================================================
+   STATE
+======================================================= */
+const params = new URLSearchParams(window.location.search);
+const productId = params.get('id') || params.get('productId');
+let currentUser = null;
+let productData = null;
+let isWishlisted = false;
+let cartCount = 0;
+
+function formatRupiah(num){
+  if (num === null || num === undefined || isNaN(num)) return "Rp0";
+  return "Rp" + Number(num).toLocaleString('id-ID');
+}
+function escapeHtml(str){
+  if(!str) return "";
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function showToast(msg, ok=true){
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.querySelector('.tcheck').style.color = ok ? 'var(--good)' : 'var(--bad)';
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=> t.classList.remove('show'), 2200);
+}
+
+/* =======================================================
+   AUTH
+======================================================= */
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  if (user) {
+    listenCartCount();
+    checkWishlistStatus();
+  } else {
+    document.getElementById('cartBadge').style.display = 'none';
+  }
+});
+
+/* =======================================================
+   LOAD PRODUCT FROM FIRESTORE
+======================================================= */
+async function loadProduct(){
+  if (!productId){
+    renderEmptyState("Produk tidak ditemukan", "ID produk tidak ada di URL. Gunakan ?id=ID_PRODUK");
+    return;
+  }
+  try{
+    const snap = await db.collection('products').doc(productId).get();
+    if (!snap.exists){
+      renderEmptyState("Produk tidak ditemukan", "Produk ini mungkin sudah dihapus atau tidak tersedia.");
+      return;
+    }
+    productData = { id: snap.id, ...snap.data() };
+    renderProduct(productData);
+    loadReviews(productData.id);
+    loadRelated(productData);
+  }catch(err){
+    console.error(err);
+    renderEmptyState("Gagal memuat produk", err.message || "Terjadi kesalahan koneksi ke server.");
+  }
+}
+
+/* =======================================================
+   RENDER PRODUCT
+======================================================= */
+function renderProduct(p){
+  document.title = (p.name || "Produk") + " - RAPI STORE";
+
+  // ----- Gallery -----
+  const images = (Array.isArray(p.images) && p.images.length) ? p.images : (p.imageUrl ? [p.imageUrl] : []);
+  const track = document.getElementById('galleryTrack');
+  const dots = document.getElementById('galleryDots');
+  track.innerHTML = '';
+  dots.innerHTML = '';
+
+  if (images.length === 0){
+    track.innerHTML = `<div class="gallery-slide"><div style="color:var(--text-2); font-size:13px;">Tidak ada gambar</div></div>`;
+  } else {
+    images.forEach((url, i) => {
+      const slide = document.createElement('div');
+      slide.className = 'gallery-slide';
+      slide.innerHTML = `<img src="${escapeHtml(url)}" alt="${escapeHtml(p.name||'')} ${i+1}" loading="${i===0?'eager':'lazy'}">`;
+      slide.addEventListener('click', () => openZoom(url));
+      track.appendChild(slide);
+
+      const dot = document.createElement('div');
+      dot.className = 'gdot' + (i===0 ? ' active' : '');
+      dots.appendChild(dot);
+    });
+    if (p.discountPercent > 0 || p.discount > 0){
+      const disc = p.discountPercent || p.discount;
+      const badge = document.createElement('div');
+      badge.className = 'badge-discount';
+      badge.textContent = `-${disc}%`;
+      track.parentElement.querySelector('.gallery-slide')?.appendChild(badge);
+    }
+  }
+
+  track.addEventListener('scroll', () => {
+    const idx = Math.round(track.scrollLeft / track.clientWidth);
+    document.querySelectorAll('.gdot').forEach((d,i)=> d.classList.toggle('active', i===idx));
+  });
+
+  // ----- Price -----
+  const hasDiscount = p.originalPrice && p.originalPrice > p.price;
+  let discPercent = p.discountPercent || p.discount || 0;
+  if (!discPercent && hasDiscount) discPercent = Math.round((1 - p.price / p.originalPrice) * 100);
+
+  document.getElementById('priceRow').innerHTML = `
+    <div class="price-now">${formatRupiah(p.price)}</div>
+    ${hasDiscount ? `<div class="price-old">${formatRupiah(p.originalPrice)}</div>` : ''}
+    ${discPercent > 0 ? `<div class="price-discount-tag">-${discPercent}%</div>` : ''}
+  `;
+  document.getElementById('soldCount').textContent =
+    (p.sold ? `${p.sold} terjual` : '0 terjual') + (p.viewCount ? ` · ${p.viewCount} dilihat` : '');
+
+  // ----- Name -----
+  document.getElementById('productName').textContent = p.name || "Tanpa Nama";
+
+  // ----- Meta (rating, stock) -----
+  const rating = p.rating || p.avgRating || 0;
+  const reviewCount = p.reviewCount || 0;
+  const stock = (typeof p.stock === 'number') ? p.stock : 0;
+  let stockClass = 'in', stockLabel = `Stok ${stock}`;
+  if (stock <= 0){ stockClass='out'; stockLabel='Stok Habis'; }
+  else if (stock <= 5){ stockClass='low'; stockLabel=`Sisa ${stock}`; }
+
+  document.getElementById('metaRow').innerHTML = `
+    <div class="meta-item"><span class="star">★</span> ${rating.toFixed ? rating.toFixed(1) : rating} <span style="color:var(--text-2)">(${reviewCount} ulasan)</span></div>
+    <div class="meta-item">📍 ${escapeHtml(p.location || p.city || 'Indonesia')}</div>
+    <div class="stock-pill ${stockClass}">${stockLabel}</div>
+  `;
+
+  // ----- Spec grid -----
+  const specs = [];
+  if (p.category) specs.push(['Kategori', p.category]);
+  if (p.condition) specs.push(['Kondisi', p.condition]);
+  if (p.weight) specs.push(['Berat', p.weight + ' gram']);
+  if (p.brand) specs.push(['Merek', p.brand]);
+  if (p.sku) specs.push(['SKU', p.sku]);
+  if (p.minOrder) specs.push(['Min. Pemesanan', p.minOrder + ' pcs']);
+  document.getElementById('specGrid').innerHTML = specs.length
+    ? specs.map(([l,v]) => `<div class="spec-item"><div class="spec-label">${escapeHtml(l)}</div><div class="spec-value">${escapeHtml(String(v))}</div></div>`).join('')
+    : `<div style="color:var(--text-2); font-size:13px;">Tidak ada spesifikasi tambahan.</div>`;
+
+  // ----- Description -----
+  const descEl = document.getElementById('descText');
+  const desc = p.description || p.desc || "Penjual belum menambahkan deskripsi untuk produk ini.";
+  descEl.textContent = desc;
+  const toggle = document.getElementById('descToggle');
+  requestAnimationFrame(() => {
+    if (descEl.scrollHeight <= descEl.clientHeight + 4){
+      toggle.style.display = 'none';
+    }
+  });
+  toggle.addEventListener('click', () => {
+    const clamped = descEl.classList.toggle('clamped');
+    toggle.textContent = clamped ? 'Lihat selengkapnya ▾' : 'Sembunyikan ▴';
+  });
+
+  // ----- Seller -----
+  const sellerName = p.sellerName || p.ownerName || "Penjual Rapi Store";
+  const sellerRating = p.sellerRating || 0;
+  const sellerLevel = p.sellerLevel || "Reguler";
+  const sellerInitial = sellerName.trim().charAt(0).toUpperCase() || "R";
+  document.getElementById('sellerCard').innerHTML = `
+    <div class="seller-avatar">${p.sellerAvatar ? `<img src="${escapeHtml(p.sellerAvatar)}" alt="${escapeHtml(sellerName)}">` : sellerInitial}</div>
+    <div class="seller-info">
+      <div class="seller-name">${escapeHtml(sellerName)} <span class="seller-level">${escapeHtml(sellerLevel)}</span></div>
+      <div class="seller-stats">
+        <span>⭐ ${sellerRating.toFixed ? sellerRating.toFixed(1) : sellerRating}</span>
+        <span>${p.sellerProductCount || 0} produk</span>
+        <span>${p.sellerResponseRate || '—'}% respons</span>
+      </div>
+    </div>
+    <div class="seller-visit" id="visitSeller">Kunjungi</div>
+  `;
+  document.getElementById('visitSeller').addEventListener('click', () => {
+    if (p.ownerId) window.location.href = `marketplace.html#marketplace?seller=${p.ownerId}`;
+  });
+
+  // ----- Rating summary -----
+  const dist = p.ratingDistribution || {5:0,4:0,3:0,2:0,1:0};
+  const totalRev = reviewCount || Object.values(dist).reduce((a,b)=>a+b,0) || 1;
+  document.getElementById('ratingSummary').innerHTML = `
+    <div style="text-align:center; flex-shrink:0;">
+      <div class="rating-big">${rating.toFixed ? rating.toFixed(1) : rating}</div>
+      <div class="rating-stars-row">${'★'.repeat(Math.round(rating))}${'☆'.repeat(5-Math.round(rating))}</div>
+      <div class="rating-count">${reviewCount} ulasan</div>
+    </div>
+    <div class="rating-bars">
+      ${[5,4,3,2,1].map(star => {
+        const count = dist[star] || 0;
+        const pct = Math.round((count/totalRev)*100);
+        return `<div class="rbar-row"><div class="rbar-label">${star}★</div><div class="rbar-track"><div class="rbar-fill" style="width:${pct}%"></div></div></div>`;
+      }).join('')}
+    </div>
+  `;
+
+  // ----- Buttons state -----
+  const outOfStock = stock <= 0;
+  document.getElementById('btnBuyNow').disabled = outOfStock;
+  document.getElementById('btnAddCart').disabled = outOfStock;
+  if (outOfStock){
+    document.getElementById('btnBuyNow').textContent = 'Stok Habis';
+  }
+}
+
+function renderEmptyState(title, msg){
+  document.getElementById('contentWrap').innerHTML = `
+    <div class="empty-state">
+      <div class="em-icon">📦</div>
+      <div style="font-family:var(--serif); font-size:17px; color:var(--text-0); margin-bottom:6px;">${escapeHtml(title)}</div>
+      <div style="font-size:13.5px;">${escapeHtml(msg)}</div>
+      <a href="marketplace.html#marketplace" style="display:inline-block; margin-top:18px; color:var(--accent); font-weight:600; font-size:13.5px;">← Kembali ke Marketplace</a>
+    </div>
+  `;
+  document.querySelector('.gallery').style.display = 'none';
+  document.querySelector('.action-bar').style.display = 'none';
+}
+
+/* =======================================================
+   REVIEWS (subcollection: products/{id}/reviews)
+======================================================= */
+async function loadReviews(pid){
+  const listEl = document.getElementById('reviewList');
+  try{
+    const snap = await db.collection('products').doc(pid)
+      .collection('reviews').orderBy('createdAt','desc').limit(8).get();
+
+    if (snap.empty){
+      listEl.innerHTML = `<div class="review-empty">Belum ada ulasan untuk produk ini.</div>`;
+      return;
+    }
+    listEl.innerHTML = snap.docs.map(doc => {
+      const r = doc.data();
+      const name = r.userName || "Pembeli";
+      const initial = name.trim().charAt(0).toUpperCase();
+      const stars = '★'.repeat(r.rating||0) + '☆'.repeat(5-(r.rating||0));
+      const date = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) : '';
+      return `
+        <div class="review-item">
+          <div class="review-head">
+            <div class="review-avatar">${initial}</div>
+            <div>
+              <div class="review-name">${escapeHtml(name)}</div>
+              <div class="review-stars">${stars}</div>
+            </div>
+            <div class="review-date">${date}</div>
+          </div>
+          <div class="review-text">${escapeHtml(r.comment || r.text || '')}</div>
+        </div>
+      `;
+    }).join('');
+  }catch(err){
+    console.error(err);
+    listEl.innerHTML = `<div class="review-empty">Ulasan tidak dapat dimuat saat ini.</div>`;
+  }
+}
+
+/* =======================================================
+   RELATED PRODUCTS (same category)
+======================================================= */
+async function loadRelated(p){
+  const scrollEl = document.getElementById('relatedScroll');
+  try{
+    let query = db.collection('products').limit(10);
+    if (p.category){
+      query = db.collection('products').where('category','==', p.category).limit(10);
+    }
+    const snap = await query.get();
+    const items = snap.docs
+      .filter(d => d.id !== p.id)
+      .slice(0, 8)
+      .map(d => ({ id: d.id, ...d.data() }));
+
+    if (items.length === 0){
+      scrollEl.innerHTML = `<div style="color:var(--text-2); font-size:13px; padding:10px 0;">Belum ada produk terkait.</div>`;
+      return;
+    }
+
+    scrollEl.innerHTML = items.map(item => {
+      const img = (item.images && item.images[0]) || item.imageUrl || '';
+      return `
+        <div class="related-card" onclick="window.location.href='detail-produk.html?id=${item.id}'">
+          ${img ? `<img class="related-img" src="${escapeHtml(img)}" alt="${escapeHtml(item.name||'')}" loading="lazy">` : `<div class="related-img"></div>`}
+          <div class="related-body">
+            <div class="related-name">${escapeHtml(item.name || 'Produk')}</div>
+            <div class="related-price">${formatRupiah(item.price)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }catch(err){
+    console.error(err);
+    scrollEl.innerHTML = `<div style="color:var(--text-2); font-size:13px; padding:10px 0;">Produk terkait tidak dapat dimuat.</div>`;
+  }
+}
+
+/* =======================================================
+   ZOOM GALLERY
+======================================================= */
+const zoomOverlay = document.getElementById('zoomOverlay');
+const zoomImg = document.getElementById('zoomImg');
+let zScale = 1, zPanX = 0, zPanY = 0;
+
+function openZoom(url){
+  zoomImg.src = url;
+  zScale = 1; zPanX = 0; zPanY = 0;
+  zoomImg.style.transform = 'scale(1) translate(0,0)';
+  zoomOverlay.classList.add('open');
+}
+document.getElementById('zoomClose').addEventListener('click', () => zoomOverlay.classList.remove('open'));
+zoomOverlay.addEventListener('click', (e) => { if (e.target === zoomOverlay) zoomOverlay.classList.remove('open'); });
+
+zoomImg.addEventListener('dblclick', () => {
+  zScale = zScale === 1 ? 2.4 : 1;
+  zPanX = 0; zPanY = 0;
+  zoomImg.style.transform = `scale(${zScale}) translate(${zPanX}px,${zPanY}px)`;
+});
+zoomOverlay.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  zScale = Math.min(4, Math.max(1, zScale - e.deltaY * 0.0015));
+  zoomImg.style.transform = `scale(${zScale}) translate(${zPanX}px,${zPanY}px)`;
+});
+let dragging=false, lastX=0, lastY=0;
+zoomImg.addEventListener('pointerdown', (e)=>{ if(zScale>1){dragging=true; lastX=e.clientX; lastY=e.clientY;} });
+window.addEventListener('pointermove', (e)=>{
+  if(!dragging) return;
+  zPanX += (e.clientX-lastX)/zScale; zPanY += (e.clientY-lastY)/zScale;
+  lastX=e.clientX; lastY=e.clientY;
+  zoomImg.style.transform = `scale(${zScale}) translate(${zPanX}px,${zPanY}px)`;
+});
+window.addEventListener('pointerup', ()=> dragging=false);
+
+/* =======================================================
+   CART
+======================================================= */
+function listenCartCount(){
+  if (!currentUser) return;
+  db.collection('users').doc(currentUser.uid).collection('cart')
+    .onSnapshot(snap => {
+      cartCount = snap.size;
+      const badge = document.getElementById('cartBadge');
+      if (cartCount > 0){
+        badge.style.display = 'flex';
+        badge.textContent = cartCount > 99 ? '99+' : cartCount;
+      } else {
+        badge.style.display = 'none';
+      }
+    }, err => console.error('cart listen error', err));
+}
+
+async function addToCart(redirectAfter){
+  if (!currentUser){
+    showToast('Silakan masuk untuk menambah ke keranjang', false);
+    return;
+  }
+  if (!productData){ return; }
+  try{
+    const cartRef = db.collection('users').doc(currentUser.uid).collection('cart').doc(productData.id);
+    const existing = await cartRef.get();
+    const img = (productData.images && productData.images[0]) || productData.imageUrl || '';
+
+    if (existing.exists){
+      await cartRef.update({
+        qty: firebase.firestore.FieldValue.increment(1),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      await cartRef.set({
+        productId: productData.id,
+        name: productData.name || '',
+        price: productData.price || 0,
+        image: img,
+        ownerId: productData.ownerId || '',
+        qty: 1,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    showToast('Ditambahkan ke keranjang');
+    if (redirectAfter){
+      setTimeout(() => window.location.href = 'keranjang.html#keranjang', 500);
+    }
+  }catch(err){
+    console.error(err);
+    showToast('Gagal menambah ke keranjang', false);
+  }
+}
+
+document.getElementById('btnAddCart').addEventListener('click', () => addToCart(false));
+document.getElementById('btnCartIcon').addEventListener('click', () => {
+  window.location.href = 'keranjang.html#keranjang';
+});
+
+/* =======================================================
+   BUY NOW -> checkout
+======================================================= */
+document.getElementById('btnBuyNow').addEventListener('click', async () => {
+  if (!currentUser){
+    showToast('Silakan masuk untuk melanjutkan', false);
+    return;
+  }
+  if (!productData) return;
+  await addToCart(false);
+  window.location.href = `checkout.html#checkout?productId=${productData.id}`;
+});
+
+/* =======================================================
+   WISHLIST
+======================================================= */
+async function checkWishlistStatus(){
+  if (!currentUser || !productId) return;
+  try{
+    const doc = await db.collection('users').doc(currentUser.uid).collection('wishlist').doc(productId).get();
+    isWishlisted = doc.exists;
+    updateWishlistUI();
+  }catch(err){ console.error(err); }
+}
+function updateWishlistUI(){
+  const btn = document.getElementById('btnWishlist');
+  btn.classList.toggle('wished', isWishlisted);
+  btn.querySelector('span').textContent = isWishlisted ? 'Tersimpan' : 'Wishlist';
+}
+document.getElementById('btnWishlist').addEventListener('click', async () => {
+  if (!currentUser){
+    showToast('Silakan masuk untuk memakai wishlist', false);
+    return;
+  }
+  if (!productData) return;
+  const ref = db.collection('users').doc(currentUser.uid).collection('wishlist').doc(productData.id);
+  try{
+    if (isWishlisted){
+      await ref.delete();
+      isWishlisted = false;
+      showToast('Dihapus dari wishlist');
+    } else {
+      const img = (productData.images && productData.images[0]) || productData.imageUrl || '';
+      await ref.set({
+        productId: productData.id,
+        name: productData.name || '',
+        price: productData.price || 0,
+        image: img,
+        ownerId: productData.ownerId || '',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      isWishlisted = true;
+      showToast('Ditambahkan ke wishlist');
+    }
+    updateWishlistUI();
+  }catch(err){
+    console.error(err);
+    showToast('Gagal memperbarui wishlist', false);
+  }
+});
+
+/* =======================================================
+   INIT
+======================================================= */
+loadProduct();
+</script>
+
+</body>
+</html>
