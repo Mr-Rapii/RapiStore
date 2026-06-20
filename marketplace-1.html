@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marketplace — RAPI STORE</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── TOKENS ─────────────────────────────────────────── */
+    :root {
+      --bg:        #0B0C10;
+      --surface:   #131520;
+      --card:      #181A28;
+      --border:    #252840;
+      --accent:    #7C6EFA;
+      --accent2:   #4FD8B4;
+      --danger:    #F24E6F;
+      --text:      #E8E9F3;
+      --muted:     #6B6E8A;
+      --star:      #F5C842;
+      --font-d:    'Space Grotesk', sans-serif;
+      --font-b:    'Plus Jakarta Sans', sans-serif;
+      --r:         14px;
+      --r-lg:      20px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-b);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── SCROLLBAR ──────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    /* ── NAVBAR ─────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(11,12,16,.85);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 64px;
+      display: flex; align-items: center; gap: 24px;
+    }
+
+    .nav-logo {
+      font-family: var(--font-d);
+      font-size: 20px; font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -.5px;
+      white-space: nowrap;
+    }
+    .nav-logo span { color: var(--accent); }
+
+    .nav-search {
+      flex: 1; max-width: 520px;
+      display: flex; align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 0 16px; gap: 10px;
+      transition: border-color .2s;
+    }
+    .nav-search:focus-within { border-color: var(--accent); }
+    .nav-search svg { color: var(--muted); flex-shrink: 0; }
+    .nav-search input {
+      flex: 1; background: none; border: none; outline: none;
+      color: var(--text); font-family: var(--font-b); font-size: 14px;
+      padding: 10px 0;
+    }
+    .nav-search input::placeholder { color: var(--muted); }
+
+    .nav-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+    .btn-icon {
+      position: relative;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); cursor: pointer;
+      width: 40px; height: 40px; border-radius: 50%;
+      display: grid; place-items: center;
+      transition: border-color .2s, background .2s;
+      text-decoration: none;
+    }
+    .btn-icon:hover { border-color: var(--accent); background: var(--card); }
+    .badge {
+      position: absolute; top: -4px; right: -4px;
+      background: var(--accent); color: #fff;
+      font-size: 10px; font-weight: 700;
+      width: 18px; height: 18px; border-radius: 50%;
+      display: grid; place-items: center;
+    }
+
+    .btn-dashboard {
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 99px;
+      padding: 8px 18px; font-family: var(--font-b);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      text-decoration: none; display: flex; align-items: center; gap: 6px;
+      transition: opacity .2s, transform .15s;
+    }
+    .btn-dashboard:hover { opacity: .88; transform: translateY(-1px); }
+
+    /* ── LAYOUT ─────────────────────────────────────────── */
+    .page { display: flex; min-height: calc(100vh - 64px); }
+
+    /* ── SIDEBAR ─────────────────────────────────────────── */
+    aside {
+      width: 240px; flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      padding: 28px 20px;
+      position: sticky; top: 64px;
+      height: calc(100vh - 64px);
+      overflow-y: auto;
+    }
+
+    .sidebar-section { margin-bottom: 32px; }
+    .sidebar-label {
+      font-family: var(--font-d); font-size: 10px; font-weight: 700;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 12px;
+    }
+
+    /* Categories */
+    .cat-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+    .cat-item a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: var(--r);
+      text-decoration: none; color: var(--muted);
+      font-size: 13.5px; font-weight: 500;
+      transition: background .18s, color .18s;
+    }
+    .cat-item a:hover, .cat-item a.active {
+      background: rgba(124,110,250,.12); color: var(--text);
+    }
+    .cat-item a.active { color: var(--accent); }
+    .cat-icon { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-size: 15px; }
+    .cat-count {
+      margin-left: auto; font-size: 11px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 99px; padding: 1px 8px; color: var(--muted);
+    }
+
+    /* Filter section */
+    .filter-group { margin-bottom: 16px; }
+    .filter-title {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      margin-bottom: 10px; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .filter-title svg { transition: transform .2s; }
+    .filter-title.open svg { transform: rotate(180deg); }
+
+    .range-wrap { padding: 4px 0; }
+    .range-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .range-inp {
+      flex: 1; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 7px 10px;
+      color: var(--text); font-family: var(--font-b); font-size: 12px;
+      outline: none; transition: border-color .2s;
+    }
+    .range-inp:focus { border-color: var(--accent); }
+
+    input[type="range"] {
+      width: 100%; accent-color: var(--accent);
+      background: transparent; cursor: pointer;
+    }
+
+    .radio-group, .check-group { display: flex; flex-direction: column; gap: 8px; }
+    .radio-opt, .check-opt {
+      display: flex; align-items: center; gap: 10px;
+      cursor: pointer; font-size: 13px; color: var(--muted);
+      transition: color .15s;
+    }
+    .radio-opt:hover, .check-opt:hover { color: var(--text); }
+    .radio-opt input, .check-opt input { accent-color: var(--accent); cursor: pointer; }
+
+    .star-filter { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .star-filter .stars { color: var(--star); font-size: 14px; }
+
+    /* ── MAIN ─────────────────────────────────────────── */
+    main { flex: 1; padding: 28px 28px 60px; min-width: 0; }
+
+    /* Hero Strip */
+    .hero-strip {
+      background: linear-gradient(120deg, #1A1730 0%, #0D1A2A 100%);
+      border: 1px solid var(--border); border-radius: var(--r-lg);
+      padding: 28px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; gap: 20px; overflow: hidden; position: relative;
+    }
+    .hero-strip::after {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(124,110,250,.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-text h1 { font-family: var(--font-d); font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .hero-text p { color: var(--muted); font-size: 13.5px; }
+    .hero-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+    .hero-badge {
+      background: rgba(124,110,250,.14); border: 1px solid rgba(124,110,250,.3);
+      color: var(--accent); border-radius: 99px;
+      padding: 5px 14px; font-size: 12px; font-weight: 600;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .result-count { font-size: 13px; color: var(--muted); margin-right: auto; }
+    .result-count strong { color: var(--text); }
+
+    .sort-select {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); border-radius: 10px;
+      padding: 8px 12px; font-family: var(--font-b); font-size: 13px;
+      cursor: pointer; outline: none; transition: border-color .2s;
+    }
+    .sort-select:focus { border-color: var(--accent); }
+
+    .view-btns { display: flex; gap: 4px; }
+    .view-btn {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--muted); width: 36px; height: 36px;
+      border-radius: 10px; display: grid; place-items: center;
+      cursor: pointer; transition: all .2s;
+    }
+    .view-btn.active, .view-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(124,110,250,.08); }
+
+    /* Product Grid */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 18px;
+    }
+    .product-grid.list-view {
+      grid-template-columns: 1fr;
+    }
+
+    /* Product Card */
+    .product-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r-lg); overflow: hidden;
+      transition: transform .22s, border-color .22s, box-shadow .22s;
+      cursor: pointer; position: relative;
+      display: flex; flex-direction: column;
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(124,110,250,.4);
+      box-shadow: 0 12px 40px rgba(0,0,0,.35);
+    }
+    .product-grid.list-view .product-card {
+      flex-direction: row; align-items: center;
+    }
+
+    .card-wish {
+      position: absolute; top: 12px; right: 12px; z-index: 2;
+      background: rgba(11,12,16,.7);
+      border: 1px solid var(--border); border-radius: 50%;
+      width: 34px; height: 34px; display: grid; place-items: center;
+      cursor: pointer; transition: all .2s; backdrop-filter: blur(8px);
+      font-size: 16px;
+    }
+    .card-wish:hover, .card-wish.active { background: rgba(242,78,111,.15); border-color: var(--danger); }
+    .card-wish.active { color: var(--danger); }
+
+    .card-img {
+      width: 100%; aspect-ratio: 16/10;
+      background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px; position: relative; overflow: hidden;
+      flex-shrink: 0;
+    }
+    .product-grid.list-view .card-img {
+      width: 120px; aspect-ratio: 1; font-size: 36px;
+    }
+    .card-img .shimmer-bg {
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, var(--surface) 0%, #1e2035 100%);
+    }
+    .card-img .emoji { position: relative; z-index: 1; }
+
+    .card-badge {
+      position: absolute; top: 10px; left: 10px; z-index: 2;
+      font-size: 10px; font-weight: 700; border-radius: 6px;
+      padding: 3px 8px; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .badge-hot { background: rgba(242,78,111,.9); color: #fff; }
+    .badge-new { background: rgba(79,216,180,.9); color: #0B0C10; }
+    .badge-sale { background: rgba(124,110,250,.9); color: #fff; }
+
+    .card-body { padding: 14px 16px 16px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+    .card-cat {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--accent);
+    }
+
+    .card-name {
+      font-size: 14px; font-weight: 600; color: var(--text);
+      line-height: 1.35;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-meta { display: flex; align-items: center; gap: 8px; }
+    .card-rating { display: flex; align-items: center; gap: 4px; }
+    .card-rating .stars { color: var(--star); font-size: 11px; }
+    .card-rating span { font-size: 12px; color: var(--muted); }
+    .dot { color: var(--border); }
+    .card-sold { font-size: 12px; color: var(--muted); }
+
+    .card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
+    .card-price {
+      font-family: var(--font-d); font-size: 17px; font-weight: 700; color: var(--text);
+    }
+    .card-price .old { font-size: 11px; font-weight: 400; color: var(--muted); text-decoration: line-through; display: block; }
+    .card-stock { font-size: 11px; color: var(--muted); }
+    .card-stock.low { color: #F5A623; }
+    .card-stock.out { color: var(--danger); }
+
+    .btn-cart {
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 10px;
+      padding: 9px 14px; font-family: var(--font-b);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      transition: opacity .2s, transform .15s;
+      white-space: nowrap;
+    }
+    .btn-cart:hover { opacity: .85; transform: scale(1.02); }
+    .btn-cart:active { transform: scale(.97); }
+    .btn-cart:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
+
+    /* Skeleton loader */
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface) 25%, var(--card) 50%, var(--surface) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .skeleton-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r-lg); overflow: hidden;
+    }
+    .sk-img { height: 140px; }
+    .sk-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+    .sk-line { height: 12px; }
+    .sk-line.w60 { width: 60%; }
+    .sk-line.w80 { width: 80%; }
+    .sk-line.w40 { width: 40%; }
+    .sk-btn { height: 38px; margin-top: 8px; border-radius: 10px; }
+
+    /* Empty */
+    .empty-state {
+      grid-column: 1/-1; text-align: center;
+      padding: 80px 20px;
+    }
+    .empty-state .icon { font-size: 64px; margin-bottom: 16px; }
+    .empty-state h3 { font-family: var(--font-d); font-size: 20px; margin-bottom: 8px; }
+    .empty-state p { color: var(--muted); }
+
+    /* Pagination */
+    .pagination {
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; margin-top: 40px; flex-wrap: wrap;
+    }
+    .page-btn {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); border-radius: 10px;
+      width: 38px; height: 38px; display: grid; place-items: center;
+      cursor: pointer; font-family: var(--font-b); font-size: 13px; font-weight: 600;
+      transition: all .2s;
+    }
+    .page-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .page-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .page-btn:disabled { opacity: .35; cursor: not-allowed; }
+    .page-ellipsis { color: var(--muted); display: grid; place-items: center; width: 38px; }
+
+    /* Toast */
+    #toast-container {
+      position: fixed; bottom: 24px; right: 24px; z-index: 999;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .toast {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 18px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      min-width: 280px; max-width: 340px;
+      animation: slideUp .3s ease;
+    }
+    @keyframes slideUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: translateY(0); } }
+    .toast-icon { font-size: 20px; flex-shrink: 0; }
+    .toast-msg { font-size: 13px; }
+    .toast-msg strong { display: block; font-weight: 600; }
+    .toast-msg span { color: var(--muted); font-size: 12px; }
+    .toast.success { border-left: 3px solid var(--accent2); }
+    .toast.info { border-left: 3px solid var(--accent); }
+
+    /* Mobile Search */
+    .mobile-search { display: none; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .mobile-search .nav-search { max-width: 100%; }
+
+    /* ── RESPONSIVE ─────────────────────────────────────── */
+    @media (max-width: 900px) {
+      aside { display: none; }
+      main { padding: 20px 16px 60px; }
+    }
+    @media (max-width: 640px) {
+      .hero-strip { flex-direction: column; align-items: flex-start; }
+      .hero-badges { display: none; }
+      nav .nav-search { display: none; }
+      .mobile-search { display: block; }
+      .product-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    }
+    @media (max-width: 400px) {
+      .product-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* Overlay mobile sidebar */
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0; z-index: 50;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+    }
+    .sidebar-overlay.show { display: block; }
+    .sidebar-panel {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 280px; z-index: 51;
+      background: var(--surface); border-right: 1px solid var(--border);
+      overflow-y: auto; padding: 24px 20px;
+      transform: translateX(-100%); transition: transform .3s ease;
+    }
+    .sidebar-panel.show { transform: translateX(0); }
+    .sidebar-close {
+      background: none; border: none; color: var(--muted);
+      font-size: 24px; cursor: pointer; margin-bottom: 20px; display: block;
+    }
+
+    .btn-filter-mobile {
+      display: none; background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); border-radius: 10px; padding: 8px 14px;
+      font-family: var(--font-b); font-size: 13px; font-weight: 500;
+      cursor: pointer; align-items: center; gap: 6px;
+      transition: border-color .2s;
+    }
+    .btn-filter-mobile:hover { border-color: var(--accent); }
+    @media (max-width: 900px) { .btn-filter-mobile { display: flex; } }
+
+    /* Category pills (mobile) */
+    .cat-pills {
+      display: none; gap: 8px; overflow-x: auto; padding-bottom: 4px;
+      scrollbar-width: none; margin-bottom: 16px;
+    }
+    .cat-pills::-webkit-scrollbar { display: none; }
+    @media (max-width: 900px) { .cat-pills { display: flex; } }
+    .cat-pill {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--muted); border-radius: 99px;
+      padding: 6px 16px; font-size: 13px; font-weight: 500;
+      cursor: pointer; white-space: nowrap; transition: all .2s;
+      flex-shrink: 0;
+    }
+    .cat-pill.active { background: rgba(124,110,250,.15); border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- ── NAVBAR ──────────────────────────────────────────── -->
+<nav>
+  <a href="dashboard.html#dashboard" class="nav-logo">RAPI<span>STORE</span></a>
+
+  <div class="nav-search">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="searchInput" placeholder="Cari produk, akun game, voucher…" />
+  </div>
+
+  <div class="nav-actions">
+    <a href="keranjang.html#keranjang" class="btn-icon" title="Keranjang">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <span class="badge" id="cartBadge">0</span>
+    </a>
+    <a href="dashboard.html#dashboard" class="btn-dashboard">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+  </div>
+</nav>
+
+<!-- Mobile search -->
+<div class="mobile-search">
+  <div class="nav-search">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="searchInputMobile" placeholder="Cari produk…" />
+  </div>
+</div>
+
+<!-- ── SIDEBAR OVERLAY (mobile) ──────────────────────── -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<div class="sidebar-panel" id="sidebarPanel">
+  <button class="sidebar-close" onclick="closeSidebar()">✕</button>
+  <div id="mobileSidebarContent"></div>
+</div>
+
+<!-- ── PAGE ───────────────────────────────────────────── -->
+<div class="page">
+
+  <!-- SIDEBAR desktop -->
+  <aside id="desktopSidebar">
+    <!-- Content injected by JS -->
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- Hero strip -->
+    <div class="hero-strip">
+      <div class="hero-text">
+        <h1>🏪 Marketplace Digital</h1>
+        <p>Akun game, sosmed, voucher, & bahan editing terpercaya</p>
+      </div>
+      <div class="hero-badges">
+        <span class="hero-badge">✅ Garansi</span>
+        <span class="hero-badge">⚡ Instan</span>
+        <span class="hero-badge">🔒 Aman</span>
+        <span class="hero-badge">💬 24/7 CS</span>
+      </div>
+    </div>
+
+    <!-- Category pills (mobile) -->
+    <div class="cat-pills" id="catPills"></div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button class="btn-filter-mobile" onclick="openSidebar()">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        Filter
+      </button>
+      <span class="result-count" id="resultCount">Memuat produk…</span>
+      <select class="sort-select" id="sortSelect">
+        <option value="terbaru">🕐 Terbaru</option>
+        <option value="terlaris">🔥 Terlaris</option>
+        <option value="harga-asc">💰 Harga Terendah</option>
+        <option value="harga-desc">💎 Harga Tertinggi</option>
+        <option value="rating">⭐ Rating Terbaik</option>
+      </select>
+      <div class="view-btns">
+        <button class="view-btn active" id="btnGrid" onclick="setView('grid')" title="Grid">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </button>
+        <button class="view-btn" id="btnList" onclick="setView('list')" title="List">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Product grid -->
+    <div class="product-grid" id="productGrid"></div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination"></div>
+
+  </main>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- ── SCRIPTS ─────────────────────────────────────────── -->
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, getDocs, query, orderBy, limit, startAfter, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // ── CONFIG — ganti dengan project Anda ─────────────────
+  const firebaseConfig = {
+    apiKey: "AIzaSyBJJjcICAkbVWjrw5-zYMzcKqPGhS0nS0I",
+    authDomain: "piwstore.firebaseapp.com",
+    projectId: "piwstore",
+    storageBucket: "piwstore.firebasestorage.app",
+    messagingSenderId: "419258630997",
+    appId: "1:419258630997:web:aefc0e34cc4b7ca16d25dc",
+    measurementId: "G-M6NHQMHQV4"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+  window.__db = db;
+
+  // Expose Firestore helpers to global scope
+  window.__fs = { collection, getDocs, query, orderBy, limit, startAfter, where };
+
+  // Initialize app after Firebase is ready
+  window.dispatchEvent(new Event('firebaseReady'));
+</script>
+
+<script>
+/* ── STATE ──────────────────────────────────────────────── */
+const STATE = {
+  category: 'Semua',
+  sort: 'terbaru',
+  search: '',
+  page: 1,
+  perPage: 12,
+  view: 'grid',
+  priceMin: 0,
+  priceMax: 5000000,
+  minRating: 0,
+  wishlist: JSON.parse(localStorage.getItem('rs_wish') || '[]'),
+  cart: JSON.parse(localStorage.getItem('rs_cart') || '[]'),
+  products: [],
+  filtered: [],
+  loading: true,
+};
+
+/* ── CATEGORIES ─────────────────────────────────────────── */
+const CATEGORIES = [
+  { label: 'Semua',          icon: '🏪', color: '#7C6EFA' },
+  { label: 'Akun Game',      icon: '🎮', color: '#F24E6F' },
+  { label: 'Sosmed',         icon: '📱', color: '#4FD8B4' },
+  { label: 'Followers',      icon: '👥', color: '#F5C842' },
+  { label: 'Bahan Editing',  icon: '🎨', color: '#FF7C55' },
+  { label: 'Voucher',        icon: '🎟️', color: '#5BA4CF' },
+];
+
+/* ── MOCK PRODUCTS (Firestore fallback / demo) ─────────── */
+const MOCK = [
+  { id:'p1',  name:'Akun ML Diamond 5000 + Skin Legends',   cat:'Akun Game',      price:285000,  oldPrice:350000, rating:4.9, sold:1240, stock:15,  badge:'hot', emoji:'🎮' },
+  { id:'p2',  name:'Akun FF Heroic Full Skin Epic',          cat:'Akun Game',      price:175000,  oldPrice:null,   rating:4.7, sold:892,  stock:8,   badge:'new', emoji:'🔥' },
+  { id:'p3',  name:'Akun PUBG Mobile Ace Season 28',        cat:'Akun Game',      price:320000,  oldPrice:400000, rating:4.8, sold:456,  stock:3,   badge:'sale',emoji:'🏆' },
+  { id:'p4',  name:'Akun Valorant Immortal 3 + Knife Skin', cat:'Akun Game',      price:550000,  oldPrice:null,   rating:5.0, sold:234,  stock:2,   badge:'hot', emoji:'🗡️' },
+  { id:'p5',  name:'Akun Instagram 10K Followers Aktif',    cat:'Sosmed',         price:125000,  oldPrice:null,   rating:4.6, sold:3210, stock:50,  badge:'new', emoji:'📸' },
+  { id:'p6',  name:'Akun TikTok 5K Followers Verified',     cat:'Sosmed',         price:89000,   oldPrice:110000, rating:4.5, sold:1876, stock:25,  badge:null,  emoji:'🎵' },
+  { id:'p7',  name:'Akun Twitter 1K Followers Aged',        cat:'Sosmed',         price:65000,   oldPrice:null,   rating:4.3, sold:654,  stock:40,  badge:null,  emoji:'🐦' },
+  { id:'p8',  name:'1000 Followers Instagram Real',         cat:'Followers',      price:45000,   oldPrice:60000,  rating:4.4, sold:5678, stock:999, badge:'sale',emoji:'👥' },
+  { id:'p9',  name:'500 Followers TikTok Aktif Cepat',      cat:'Followers',      price:25000,   oldPrice:null,   rating:4.2, sold:3421, stock:999, badge:null,  emoji:'📱' },
+  { id:'p10', name:'2000 Followers YouTube Premium',        cat:'Followers',      price:89000,   oldPrice:null,   rating:4.6, sold:1234, stock:999, badge:'hot', emoji:'▶️' },
+  { id:'p11', name:'Pack Preset Lightroom 2024 — 100+',     cat:'Bahan Editing',  price:35000,   oldPrice:50000,  rating:4.8, sold:4500, stock:999, badge:'sale',emoji:'🎨' },
+  { id:'p12', name:'Template After Effects Cinematic Pro',  cat:'Bahan Editing',  price:75000,   oldPrice:null,   rating:4.7, sold:2100, stock:999, badge:null,  emoji:'🎬' },
+  { id:'p13', name:'Font Bundle Premium 200 Fonts',         cat:'Bahan Editing',  price:55000,   oldPrice:80000,  rating:4.9, sold:1800, stock:999, badge:'hot', emoji:'🅰️' },
+  { id:'p14', name:'Voucher Shopee 50.000',                 cat:'Voucher',        price:48000,   oldPrice:null,   rating:4.5, sold:8900, stock:200, badge:null,  emoji:'🛒' },
+  { id:'p15', name:'Voucher Google Play 100.000',           cat:'Voucher',        price:97000,   oldPrice:100000, rating:4.8, sold:6700, stock:150, badge:'sale',emoji:'🎮' },
+  { id:'p16', name:'Voucher Netflix 1 Bulan Premium',       cat:'Voucher',        price:185000,  oldPrice:null,   rating:4.9, sold:3400, stock:75,  badge:'new', emoji:'🎬' },
+  { id:'p17', name:'Akun Genshin Impact AR 55 Ayaka C6',    cat:'Akun Game',      price:750000,  oldPrice:950000, rating:4.9, sold:178,  stock:1,   badge:'hot', emoji:'⚔️' },
+  { id:'p18', name:'Pack Sound Effect & Musik Royalty Free', cat:'Bahan Editing', price:45000,   oldPrice:null,   rating:4.6, sold:2300, stock:999, badge:null,  emoji:'🎵' },
+  { id:'p19', name:'5000 Followers Instagram Gradual',      cat:'Followers',      price:175000,  oldPrice:220000, rating:4.7, sold:900,  stock:999, badge:'sale',emoji:'📊' },
+  { id:'p20', name:'Voucher Tokopedia Gold 75.000',         cat:'Voucher',        price:72000,   oldPrice:75000,  rating:4.4, sold:2100, stock:300, badge:null,  emoji:'🏅' },
+  { id:'p21', name:'Akun Steam 100+ Game AAA',              cat:'Akun Game',      price:450000,  oldPrice:null,   rating:4.8, sold:567,  stock:4,   badge:'new', emoji:'🖥️' },
+  { id:'p22', name:'Template Canva Premium 500+',           cat:'Bahan Editing',  price:29000,   oldPrice:45000,  rating:4.5, sold:7800, stock:999, badge:'sale',emoji:'🖼️' },
+  { id:'p23', name:'Akun Facebook Business Manager',        cat:'Sosmed',         price:145000,  oldPrice:null,   rating:4.3, sold:432,  stock:20,  badge:null,  emoji:'👤' },
+  { id:'p24', name:'Voucher Spotify Premium 3 Bulan',       cat:'Voucher',        price:55000,   oldPrice:60000,  rating:4.7, sold:4500, stock:100, badge:'hot', emoji:'🎵' },
+];
+
+/* ── UTILITIES ──────────────────────────────────────────── */
+const fmt = n => 'Rp ' + n.toLocaleString('id-ID');
+
+function stars(r) {
+  const full = Math.floor(r), half = r % 1 >= .5 ? 1 : 0, empty = 5 - full - half;
+  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty);
+}
+
+function stockLabel(s) {
+  if (s === 0) return { label: 'Habis', cls: 'out' };
+  if (s <= 5)  return { label: `Sisa ${s}`, cls: 'low' };
+  return { label: `Stok ${s}`, cls: '' };
+}
+
+/* ── TOAST ──────────────────────────────────────────────── */
+function toast(msg, sub = '', type = 'success', icon = '✅') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span class="toast-icon">${icon}</span><div class="toast-msg"><strong>${msg}</strong><span>${sub}</span></div>`;
+  document.getElementById('toast-container').prepend(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+/* ── CART / WISHLIST ────────────────────────────────────── */
+function saveCart() { localStorage.setItem('rs_cart', JSON.stringify(STATE.cart)); }
+function saveWish() { localStorage.setItem('rs_wish', JSON.stringify(STATE.wishlist)); }
+
+function addToCart(id) {
+  const p = STATE.products.find(x => x.id === id);
+  if (!p) return;
+  const ex = STATE.cart.find(x => x.id === id);
+  if (ex) ex.qty++;
+  else STATE.cart.push({ id, qty: 1, price: p.price, name: p.name });
+  saveCart();
+  updateCartBadge();
+  toast('Ditambahkan ke keranjang', p.name, 'success', '🛒');
+}
+
+function toggleWish(id) {
+  const i = STATE.wishlist.indexOf(id);
+  if (i === -1) {
+    STATE.wishlist.push(id);
+    toast('Ditambahkan ke wishlist', '', 'info', '❤️');
+  } else {
+    STATE.wishlist.splice(i, 1);
+  }
+  saveWish();
+  // re-render wish button only
+  const btn = document.querySelector(`[data-wish="${id}"]`);
+  if (btn) {
+    const active = STATE.wishlist.includes(id);
+    btn.classList.toggle('active', active);
+    btn.title = active ? 'Hapus dari Wishlist' : 'Tambah ke Wishlist';
+  }
+}
+
+function updateCartBadge() {
+  const total = STATE.cart.reduce((s, x) => s + x.qty, 0);
+  document.getElementById('cartBadge').textContent = total;
+}
+
+/* ── RENDER SIDEBAR ─────────────────────────────────────── */
+function sidebarHTML() {
+  const catCounts = {};
+  CATEGORIES.forEach(c => {
+    catCounts[c.label] = c.label === 'Semua'
+      ? STATE.products.length
+      : STATE.products.filter(p => p.cat === c.label).length;
+  });
+
+  return `
+    <div class="sidebar-section">
+      <div class="sidebar-label">Kategori</div>
+      <ul class="cat-list">
+        ${CATEGORIES.map(c => `
+          <li class="cat-item">
+            <a href="#" class="${STATE.category === c.label ? 'active' : ''}" onclick="setCategory('${c.label}');return false;">
+              <span class="cat-icon" style="background:${c.color}22">${c.icon}</span>
+              ${c.label}
+              <span class="cat-count">${catCounts[c.label] || 0}</span>
+            </a>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Filter</div>
+
+      <div class="filter-group">
+        <div class="filter-title open" onclick="toggleFilter(this)">
+          Rentang Harga
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="range-wrap">
+          <div class="range-row">
+            <input class="range-inp" type="number" placeholder="Min" id="priceMin" value="${STATE.priceMin || ''}" onchange="setPriceFilter()" />
+            <input class="range-inp" type="number" placeholder="Max" id="priceMax" value="${STATE.priceMax === 5000000 ? '' : STATE.priceMax}" onchange="setPriceFilter()" />
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <div class="filter-title open" onclick="toggleFilter(this)">
+          Rating Minimum
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="radio-group">
+          ${[0, 3, 3.5, 4, 4.5].map(v => `
+            <label class="radio-opt">
+              <input type="radio" name="minRating" value="${v}" ${STATE.minRating === v ? 'checked' : ''} onchange="setRatingFilter(${v})" />
+              <span class="star-filter">
+                ${v === 0
+                  ? 'Semua Rating'
+                  : `<span class="stars">${'★'.repeat(Math.floor(v))}</span> ${v}+`
+                }
+              </span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSidebar() {
+  const html = sidebarHTML();
+  document.getElementById('desktopSidebar').innerHTML = html;
+  document.getElementById('mobileSidebarContent').innerHTML = html;
+}
+
+function toggleFilter(el) {
+  el.classList.toggle('open');
+  const next = el.nextElementSibling;
+  if (next) next.style.display = el.classList.contains('open') ? '' : 'none';
+}
+
+/* ── RENDER CAT PILLS ──────────────────────────────────── */
+function renderCatPills() {
+  document.getElementById('catPills').innerHTML = CATEGORIES.map(c => `
+    <button class="cat-pill ${STATE.category === c.label ? 'active' : ''}" onclick="setCategory('${c.label}')">
+      ${c.icon} ${c.label}
+    </button>
+  `).join('');
+}
+
+/* ── RENDER SKELETONS ───────────────────────────────────── */
+function renderSkeletons(n = 12) {
+  document.getElementById('productGrid').innerHTML = Array(n).fill(0).map(() => `
+    <div class="skeleton-card">
+      <div class="skeleton sk-img"></div>
+      <div class="sk-body">
+        <div class="skeleton sk-line w40"></div>
+        <div class="skeleton sk-line w80"></div>
+        <div class="skeleton sk-line w60"></div>
+        <div class="skeleton sk-btn"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ── RENDER PRODUCTS ────────────────────────────────────── */
+function renderProducts() {
+  const grid = document.getElementById('productGrid');
+  const filtered = applyFilters();
+  STATE.filtered = filtered;
+
+  // Result count
+  document.getElementById('resultCount').innerHTML =
+    `Menampilkan <strong>${filtered.length}</strong> produk`;
+
+  // Pagination slice
+  const total  = filtered.length;
+  const pages  = Math.ceil(total / STATE.perPage);
+  const start  = (STATE.page - 1) * STATE.perPage;
+  const slice  = filtered.slice(start, start + STATE.perPage);
+
+  if (slice.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🔍</div>
+        <h3>Produk tidak ditemukan</h3>
+        <p>Coba kata kunci lain atau ubah filter</p>
+      </div>`;
+    renderPagination(0, pages);
+    return;
+  }
+
+  grid.innerHTML = slice.map(p => {
+    const { label: stk, cls: stkCls } = stockLabel(p.stock);
+    const wished = STATE.wishlist.includes(p.id);
+    return `
+      <div class="product-card" onclick="goDetail('${p.id}')">
+        <button class="card-wish ${wished ? 'active' : ''}" data-wish="${p.id}"
+          onclick="event.stopPropagation();toggleWish('${p.id}')"
+          title="${wished ? 'Hapus dari Wishlist' : 'Tambah ke Wishlist'}">❤️</button>
+
+        <div class="card-img">
+          <div class="shimmer-bg"></div>
+          <span class="emoji">${p.emoji}</span>
+          ${p.badge ? `<span class="card-badge badge-${p.badge}">${p.badge}</span>` : ''}
+        </div>
+
+        <div class="card-body">
+          <div class="card-cat">${p.cat}</div>
+          <div class="card-name">${p.name}</div>
+          <div class="card-meta">
+            <div class="card-rating">
+              <span class="stars">★</span>
+              <span>${p.rating.toFixed(1)}</span>
+            </div>
+            <span class="dot">·</span>
+            <span class="card-sold">${p.sold.toLocaleString('id-ID')} terjual</span>
+          </div>
+          <div class="card-footer">
+            <div class="card-price">
+              ${p.oldPrice ? `<span class="old">${fmt(p.oldPrice)}</span>` : ''}
+              ${fmt(p.price)}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;">
+            <span class="card-stock ${stkCls}">${p.stock === 999 ? '✅ Tersedia' : stk}</span>
+            <button class="btn-cart" onclick="event.stopPropagation();addToCart('${p.id}')"
+              ${p.stock === 0 ? 'disabled' : ''}>
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              ${p.stock === 0 ? 'Habis' : 'Beli'}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  renderPagination(total, pages);
+}
+
+/* ── FILTERS ─────────────────────────────────────────────── */
+function applyFilters() {
+  let arr = [...STATE.products];
+
+  // Category
+  if (STATE.category !== 'Semua') arr = arr.filter(p => p.cat === STATE.category);
+
+  // Search
+  if (STATE.search) {
+    const q = STATE.search.toLowerCase();
+    arr = arr.filter(p => p.name.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q));
+  }
+
+  // Price
+  arr = arr.filter(p => p.price >= STATE.priceMin && p.price <= STATE.priceMax);
+
+  // Rating
+  if (STATE.minRating > 0) arr = arr.filter(p => p.rating >= STATE.minRating);
+
+  // Sort
+  switch (STATE.sort) {
+    case 'terbaru':    arr.sort((a,b) => b.id.localeCompare(a.id)); break;
+    case 'terlaris':   arr.sort((a,b) => b.sold - a.sold); break;
+    case 'harga-asc':  arr.sort((a,b) => a.price - b.price); break;
+    case 'harga-desc': arr.sort((a,b) => b.price - a.price); break;
+    case 'rating':     arr.sort((a,b) => b.rating - a.rating); break;
+  }
+
+  return arr;
+}
+
+/* ── PAGINATION ─────────────────────────────────────────── */
+function renderPagination(total, pages) {
+  const el = document.getElementById('pagination');
+  if (pages <= 1) { el.innerHTML = ''; return; }
+
+  let html = `
+    <button class="page-btn" onclick="setPage(${STATE.page-1})" ${STATE.page===1?'disabled':''}>‹</button>
+  `;
+
+  for (let i = 1; i <= pages; i++) {
+    if (i === 1 || i === pages || Math.abs(i - STATE.page) <= 1) {
+      html += `<button class="page-btn ${i===STATE.page?'active':''}" onclick="setPage(${i})">${i}</button>`;
+    } else if (Math.abs(i - STATE.page) === 2) {
+      html += `<span class="page-ellipsis">…</span>`;
+    }
+  }
+
+  html += `<button class="page-btn" onclick="setPage(${STATE.page+1})" ${STATE.page===pages?'disabled':''}>›</button>`;
+  el.innerHTML = html;
+}
+
+/* ── ACTIONS ─────────────────────────────────────────────── */
+function setCategory(cat) {
+  STATE.category = cat;
+  STATE.page = 1;
+  renderSidebar();
+  renderCatPills();
+  renderProducts();
+}
+
+function setPage(p) {
+  STATE.page = p;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  renderProducts();
+}
+
+function setView(v) {
+  STATE.view = v;
+  document.getElementById('productGrid').className = `product-grid${v === 'list' ? ' list-view' : ''}`;
+  document.getElementById('btnGrid').classList.toggle('active', v === 'grid');
+  document.getElementById('btnList').classList.toggle('active', v === 'list');
+  renderProducts();
+}
+
+function setPriceFilter() {
+  STATE.priceMin = parseInt(document.getElementById('priceMin')?.value) || 0;
+  STATE.priceMax = parseInt(document.getElementById('priceMax')?.value) || 5000000;
+  STATE.page = 1;
+  renderProducts();
+}
+
+function setRatingFilter(v) {
+  STATE.minRating = v;
+  STATE.page = 1;
+  renderProducts();
+}
+
+function goDetail(id) {
+  window.location.href = `detail-produk.html#detail/${id}`;
+}
+
+function openSidebar() {
+  document.getElementById('sidebarOverlay').classList.add('show');
+  document.getElementById('sidebarPanel').classList.add('show');
+}
+window.closeSidebar = function() {
+  document.getElementById('sidebarOverlay').classList.remove('show');
+  document.getElementById('sidebarPanel').classList.remove('show');
+};
+
+/* ── SEARCH ─────────────────────────────────────────────── */
+let searchTimer;
+function handleSearch(val) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    STATE.search = val.trim();
+    STATE.page = 1;
+    renderProducts();
+  }, 280);
+}
+
+document.getElementById('searchInput').addEventListener('input', e => handleSearch(e.target.value));
+document.getElementById('searchInputMobile').addEventListener('input', e => {
+  document.getElementById('searchInput').value = e.target.value;
+  handleSearch(e.target.value);
+});
+
+/* ── SORT ──────────────────────────────────────────────── */
+document.getElementById('sortSelect').addEventListener('change', e => {
+  STATE.sort = e.target.value;
+  STATE.page = 1;
+  renderProducts();
+});
+
+/* ── FIRESTORE LOAD ──────────────────────────────────────── */
+async function loadFromFirestore() {
+  try {
+    const { collection, getDocs } = window.__fs;
+    const db = window.__db;
+    const snap = await getDocs(collection(db, 'products'));
+    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (docs.length > 0) return docs;
+  } catch (e) {
+    console.warn('Firestore tidak terhubung, menggunakan data demo.', e);
+  }
+  return null;
+}
+
+/* ── INIT ───────────────────────────────────────────────── */
+async function init() {
+  updateCartBadge();
+  renderSkeletons();
+
+  const firestoreData = await loadFromFirestore();
+  STATE.products = firestoreData || MOCK;
+
+  renderSidebar();
+  renderCatPills();
+  renderProducts();
+}
+
+window.addEventListener('firebaseReady', init);
+
+// Expose globals
+window.setCategory   = setCategory;
+window.setPage       = setPage;
+window.setView       = setView;
+window.setPriceFilter = setPriceFilter;
+window.setRatingFilter = setRatingFilter;
+window.addToCart     = addToCart;
+window.toggleWish    = toggleWish;
+window.goDetail      = goDetail;
+window.openSidebar   = openSidebar;
+window.toggleFilter  = toggleFilter;
+</script>
+
+</body>
+</html>
