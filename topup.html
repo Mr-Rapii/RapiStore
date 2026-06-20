@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Top Up — RAPI STORE</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg: #0a0e14;
+    --surface: #0f1620;
+    --surface-2: #121a26;
+    --surface-3: #161f2c;
+    --line: #1c2630;
+    --cyan: #22d3ee;
+    --cyan-dim: #0d3b42;
+    --gold: #d4af37;
+    --gold-soft: #e8cf7a;
+    --text: #f5f0e6;
+    --text-dim: #8a95a3;
+    --danger: #ef6f6f;
+    --good: #7fe0c4;
+    --radius: 14px;
+    --sidebar-w: 240px;
+  }
+
+  *{ box-sizing: border-box; }
+  html, body{
+    margin: 0; padding: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+  a{ color: inherit; text-decoration: none; }
+  ::-webkit-scrollbar{ width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb{ background: var(--line); border-radius: 4px; }
+
+  .skip-link{ position:absolute; left:-9999px; }
+  .skip-link:focus{ left: 8px; top: 8px; background: var(--cyan); color: #04161a; padding: 6px 10px; border-radius: 6px; z-index: 999; }
+
+  .bg-grid{
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(34,211,238,0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(34,211,238,0.04) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(ellipse 70% 50% at 100% 0%, black 30%, transparent 100%);
+    pointer-events: none !important;
+    z-index: 0;
+  }
+  .glow{
+    position: fixed; width: 560px; height: 560px; border-radius: 50%;
+    filter: blur(10px); opacity: 0.12;
+    pointer-events: none !important;
+    z-index: 0;
+  }
+  .glow-gold{ background: radial-gradient(circle, var(--gold), transparent 70%); top: -200px; right: -160px; }
+
+  .app{ position: relative; z-index: 1; min-height: 100vh; }
+
+  .sidebar{
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-w);
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    display: flex; flex-direction: column;
+    padding: 22px 16px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 60;
+    overflow-y: auto;
+  }
+  .sidebar.open{ transform: translateX(0); }
+  @media (min-width: 1024px){
+    .sidebar{ transform: translateX(0); position: fixed; }
+    .app{ margin-left: var(--sidebar-w); }
+  }
+
+  .sb-brand{ display:flex; align-items:center; gap: 10px; padding: 4px 8px 22px; }
+  .mark{
+    width: 34px; height: 34px; border-radius: 9px;
+    background: linear-gradient(140deg, var(--cyan-dim), var(--surface-2));
+    border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .mark svg{ width: 16px; height: 16px; }
+  .brand-name{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; }
+  .brand-name .accent{ color: var(--gold-soft); }
+
+  .sb-nav{ display: flex; flex-direction: column; gap: 3px; flex: 1; }
+  .sb-link{
+    display: flex; align-items: center; gap: 11px;
+    padding: 10px 12px; border-radius: 9px;
+    font-size: 14px; font-weight: 500; color: var(--text-dim);
+    transition: background 0.15s ease, color 0.15s ease;
+    position: relative; z-index: 1;
+  }
+  .sb-link svg{ width: 17px; height: 17px; flex-shrink: 0; }
+  .sb-link:hover{ background: var(--surface-2); color: var(--text); }
+  .sb-link.active{ background: var(--surface-2); color: var(--cyan); }
+  .sb-link.active svg{ color: var(--cyan); }
+
+  .sb-foot{ border-top: 1px solid var(--line); padding-top: 14px; margin-top: 8px; }
+  .btn-logout{
+    width: 100%; display: flex; align-items: center; gap: 9px; justify-content: center;
+    background: var(--surface-2); border: 1px solid var(--line);
+    color: var(--text-dim); border-radius: 9px; padding: 10px 0;
+    font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .btn-logout:hover{ border-color: var(--danger); color: var(--danger); }
+  .btn-logout svg{ width: 15px; height: 15px; }
+
+  .backdrop{
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 55;
+  }
+  .backdrop.show{ display: block; }
+  @media (min-width: 1024px){ .backdrop{ display: none !important; } }
+
+  .topbar{
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px;
+    background: rgba(10,14,20,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  @media (min-width: 1024px){ .topbar{ display: none; } }
+  .menu-btn{
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px;
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    color: var(--text); cursor: pointer;
+  }
+  .menu-btn svg{ width: 18px; height: 18px; }
+
+  .main{ position: relative; z-index: 1; min-width: 0; padding: 26px 20px 60px; }
+  @media (min-width: 1024px){ .main{ padding: 36px 40px 60px; } }
+
+  .page-head{
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .page-title{ font-family:'Space Grotesk',sans-serif; font-weight: 600; font-size: clamp(22px,2.6vw,28px); margin: 0 0 4px; }
+  .page-sub{ color: var(--text-dim); font-size: 14px; margin: 0; }
+
+  .back-link{
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13.5px; color: var(--cyan); font-weight: 500;
+  }
+  .back-link:hover{ color: var(--gold-soft); }
+  .back-link svg{ width: 14px; height: 14px; }
+
+  .layout-grid{ display: grid; gap: 18px; grid-template-columns: 1fr; }
+  @media (min-width: 980px){ .layout-grid{ grid-template-columns: 1fr 360px; align-items: start; } }
+
+  .card{
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+    isolation: isolate;
+    margin-bottom: 18px;
+  }
+  .card::before{
+    content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1px;
+    background: linear-gradient(135deg, var(--cyan) 0%, transparent 30%, transparent 70%, var(--gold) 100%);
+    opacity: 0.4;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    z-index: -1;
+    pointer-events: none !important;
+  }
+
+  .card-title{ font-family:'Space Grotesk',sans-serif; font-weight: 600; font-size: 16px; margin: 0 0 16px; }
+
+  /* nominal grid */
+  .nominal-grid{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .nominal-btn{
+    background: var(--surface-2); border: 1px solid var(--line);
+    color: var(--text); border-radius: 9px; padding: 14px 6px;
+    font-family: inherit; font-weight: 700; font-size: 14px; cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    text-align: center;
+  }
+  .nominal-btn:hover{ border-color: var(--cyan); }
+  .nominal-btn.active{ background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); }
+
+  .custom-input-wrap{ position: relative; }
+  .custom-input-wrap span{
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--text-dim); font-size: 14.5px; font-weight: 600; pointer-events: none;
+  }
+  input[type="text"], input[type="number"]{
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 12px 14px;
+    font-size: 14.5px;
+    color: var(--text);
+    font-family: inherit;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  #customAmount{ padding-left: 34px; }
+  input::placeholder{ color: #57636f; }
+  input:focus{
+    outline: none; border-color: var(--cyan);
+    box-shadow: 0 0 0 3px rgba(34,211,238,0.14);
+  }
+  .field-msg{ font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+  .field-msg.error{ color: var(--danger); }
+
+  /* payment method */
+  .method-list{ display: flex; flex-direction: column; gap: 10px; margin-bottom: 6px; }
+  .method-option{
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 13px 14px; cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .method-option:hover{ border-color: var(--cyan-dim); }
+  .method-option.active{ border-color: var(--cyan); background: rgba(34,211,238,0.06); }
+  .method-option input{ accent-color: var(--cyan); width: 16px; height: 16px; flex-shrink: 0; }
+  .method-icon{
+    width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface-3); border: 1px solid var(--line);
+  }
+  .method-icon svg{ width: 17px; height: 17px; color: var(--cyan); }
+  .method-info{ flex: 1; }
+  .method-name{ font-size: 14px; font-weight: 600; margin: 0 0 2px; }
+  .method-desc{ font-size: 12px; color: var(--text-dim); margin: 0; }
+
+  .method-detail{
+    display: none;
+    margin-top: 10px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 16px;
+    text-align: center;
+  }
+  .method-detail.show{ display: block; }
+  .qris-placeholder{
+    width: 160px; height: 160px; margin: 0 auto 12px;
+    background: var(--surface-3); border: 1px dashed var(--line);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim);
+  }
+  .qris-placeholder svg{ width: 60px; height: 60px; }
+  .copy-row{
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 17px;
+    color: var(--gold-soft); margin-bottom: 4px;
+  }
+  .copy-btn{
+    background: var(--surface-3); border: 1px solid var(--line);
+    color: var(--text-dim); border-radius: 7px; padding: 5px 9px;
+    font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .copy-btn:hover{ border-color: var(--cyan); color: var(--cyan); }
+  .copy-btn svg{ width: 12px; height: 12px; }
+  .method-detail-sub{ font-size: 12.5px; color: var(--text-dim); }
+
+  /* upload bukti */
+  .upload-box{
+    border: 1.5px dashed var(--line);
+    border-radius: 10px; padding: 24px; text-align: center;
+    cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease;
+    position: relative;
+  }
+  .upload-box:hover{ border-color: var(--cyan); background: rgba(34,211,238,0.03); }
+  .upload-box.has-preview{ padding: 10px; }
+  .upload-box svg{ width: 28px; height: 28px; color: var(--text-dim); margin-bottom: 10px; }
+  .upload-box p{ margin: 0; font-size: 13.5px; color: var(--text-dim); }
+  .upload-box .hint{ font-size: 11.5px; margin-top: 4px; }
+  .upload-box input{ display: none; }
+  .preview-img{ max-width: 100%; max-height: 220px; border-radius: 8px; display: block; margin: 0 auto; }
+  .remove-preview{
+    margin-top: 10px; background: var(--surface-2); border: 1px solid var(--line);
+    color: var(--danger); border-radius: 7px; padding: 6px 14px;
+    font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  }
+  .upload-progress-bar{
+    height: 5px; background: var(--surface-3); border-radius: 99px; overflow: hidden;
+    margin-top: 10px; display: none;
+  }
+  .upload-progress-bar.show{ display: block; }
+  .upload-progress-fill{ height: 100%; background: var(--cyan); width: 0%; transition: width 0.2s ease; }
+
+  /* submit */
+  .summary-row{
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 0; border-bottom: 1px solid var(--line);
+    font-size: 13.5px;
+  }
+  .summary-row:last-of-type{ border-bottom: none; }
+  .summary-row .label{ color: var(--text-dim); }
+  .summary-row .value{ font-weight: 600; }
+  .summary-row .value.total{ font-family:'Space Grotesk',sans-serif; font-size: 18px; color: var(--gold-soft); }
+
+  .btn-submit{
+    width: 100%; margin-top: 16px;
+    background: linear-gradient(135deg, var(--cyan) 0%, #0ea5b8 100%);
+    color: #04161a; border: none; border-radius: 9px;
+    padding: 14px 0; font-size: 15px; font-weight: 600; font-family: inherit;
+    cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-submit:hover{ box-shadow: 0 6px 20px rgba(34,211,238,0.22); transform: translateY(-1px); }
+  .btn-submit:disabled{ opacity: 0.55; cursor: not-allowed; transform: none; }
+
+  .spinner{
+    width: 15px; height: 15px;
+    border: 2px solid rgba(4,22,26,0.3);
+    border-top-color: #04161a;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  .btn-submit.loading .spinner{ display: inline-block; }
+  .btn-submit.loading .btn-label{ display: none; }
+
+  /* history */
+  .history-list{ display: flex; flex-direction: column; }
+  .history-item{
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 0; border-bottom: 1px solid var(--line);
+  }
+  .history-item:last-child{ border-bottom: none; padding-bottom: 0; }
+  .history-icon{
+    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface-2); border: 1px solid var(--line);
+  }
+  .history-icon svg{ width: 16px; height: 16px; color: var(--cyan); }
+  .history-detail{ flex: 1; min-width: 0; }
+  .history-title{ font-size: 13.5px; font-weight: 700; margin: 0 0 2px; font-family:'Space Grotesk',sans-serif; }
+  .history-meta{ font-size: 11.5px; color: var(--text-dim); }
+
+  .status-badge{
+    font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px;
+    white-space: nowrap; text-transform: uppercase; letter-spacing: 0.02em;
+  }
+  .status-badge.pending{ background: rgba(212,175,55,0.14); color: var(--gold-soft); border: 1px solid rgba(212,175,55,0.3); }
+  .status-badge.confirmed{ background: rgba(34,211,238,0.14); color: var(--cyan); border: 1px solid rgba(34,211,238,0.3); }
+  .status-badge.completed{ background: rgba(127,224,196,0.14); color: var(--good); border: 1px solid rgba(127,224,196,0.3); }
+  .status-badge.rejected{ background: rgba(239,111,111,0.14); color: var(--danger); border: 1px solid rgba(239,111,111,0.3); }
+
+  .sk{
+    background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 37%, var(--surface-2) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.3s infinite;
+    border-radius: 6px;
+  }
+  @keyframes shimmer{ 0%{ background-position: 100% 0; } 100%{ background-position: 0 0; } }
+
+  .empty-state{ text-align: center; padding: 28px 16px; color: var(--text-dim); font-size: 13px; }
+  .empty-state svg{ width: 26px; height: 26px; margin-bottom: 10px; color: var(--text-dim); }
+
+  .toast{
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--surface-2); border: 1px solid var(--line);
+    color: var(--text); padding: 12px 18px; border-radius: 10px;
+    font-size: 13.5px; display: flex; align-items: center; gap: 9px;
+    opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 80; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    pointer-events: none; max-width: 90vw;
+  }
+  .toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast svg{ width: 16px; height: 16px; flex-shrink: 0; }
+  .toast.error svg{ color: var(--danger); }
+  .toast.success svg{ color: var(--good); }
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Lewati ke konten utama</a>
+
+<div class="bg-grid"></div>
+<div class="glow glow-gold"></div>
+
+<div class="backdrop" id="backdrop"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sb-brand">
+    <div class="mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l9-6 9 6-9 6-9-6z" stroke="#22d3ee"/><path d="M3 9v6l9 6 9-6V9" stroke="#d4af37"/></svg>
+    </div>
+    <span class="brand-name">RAPI <span class="accent">STORE</span></span>
+  </div>
+
+  <nav class="sb-nav">
+    <a href="dashboard.html#dashboard" class="sb-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      Dashboard
+    </a>
+    <a href="saldo.html#saldo" class="sb-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7"/></svg>
+      Saldo
+    </a>
+    <a href="topup.html#topup" class="sb-link active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></svg>
+      Top Up
+    </a>
+    <a href="premium.html#premium" class="sb-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3 6.5 7 1-5.2 4.8 1.4 7-6.2-3.5-6.2 3.5 1.4-7L2 9.5l7-1z"/></svg>
+      Premium
+    </a>
+    <a href="profil.html#profil" class="sb-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
+      Profil
+    </a>
+  </nav>
+
+  <div class="sb-foot">
+    <button class="btn-logout" id="logoutBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      Keluar
+    </button>
+  </div>
+</aside>
+
+<div class="app">
+
+  <div class="topbar">
+    <div class="sb-brand" style="padding:0;">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l9-6 9 6-9 6-9-6z" stroke="#22d3ee"/><path d="M3 9v6l9 6 9-6V9" stroke="#d4af37"/></svg></div>
+      <span class="brand-name">RAPI <span class="accent">STORE</span></span>
+    </div>
+    <button class="menu-btn" id="menuBtn" type="button" aria-label="Buka menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </div>
+
+  <main class="main" id="main">
+
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Top Up Saldo</h1>
+        <p class="page-sub">Tambahkan saldo ke akun RAPI STORE kamu.</p>
+      </div>
+      <a href="saldo.html#saldo" class="back-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Kembali ke Saldo
+      </a>
+    </div>
+
+    <div class="layout-grid">
+
+      <!-- LEFT: form -->
+      <div>
+        <form id="topupForm" novalidate>
+
+          <!-- nominal -->
+          <div class="card">
+            <h2 class="card-title">Pilih Nominal</h2>
+            <div class="nominal-grid" id="nominalGrid">
+              <button type="button" class="nominal-btn" data-amount="10000">Rp10K</button>
+              <button type="button" class="nominal-btn" data-amount="25000">Rp25K</button>
+              <button type="button" class="nominal-btn" data-amount="50000">Rp50K</button>
+              <button type="button" class="nominal-btn" data-amount="100000">Rp100K</button>
+              <button type="button" class="nominal-btn" data-amount="250000">Rp250K</button>
+              <button type="button" class="nominal-btn" data-amount="500000">Rp500K</button>
+            </div>
+            <label for="customAmount" style="display:block; font-size:12.5px; font-weight:600; color:var(--text-dim); margin-bottom:7px;">Atau masukkan nominal lain</label>
+            <div class="custom-input-wrap">
+              <span>Rp</span>
+              <input type="text" id="customAmount" inputmode="numeric" placeholder="0">
+            </div>
+            <p class="field-msg" id="amountMsg">Minimal top up Rp10.000.</p>
+          </div>
+
+          <!-- method -->
+          <div class="card">
+            <h2 class="card-title">Metode Pembayaran</h2>
+            <div class="method-list" id="methodList">
+              <label class="method-option" data-method="qris">
+                <input type="radio" name="method" value="qris">
+                <div class="method-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20v.01"/></svg>
+                </div>
+                <div class="method-info">
+                  <p class="method-name">QRIS</p>
+                  <p class="method-desc">Scan & bayar via e-wallet / m-banking apa saja</p>
+                </div>
+              </label>
+
+              <label class="method-option" data-method="dana">
+                <input type="radio" name="method" value="dana">
+                <div class="method-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 14h4"/></svg>
+                </div>
+                <div class="method-info">
+                  <p class="method-name">DANA</p>
+                  <p class="method-desc">Transfer langsung ke nomor DANA</p>
+                </div>
+              </label>
+
+              <label class="method-option" data-method="bank">
+                <input type="radio" name="method" value="bank">
+                <div class="method-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10l9-6 9 6"/><path d="M5 10v9M19 10v9M9 10v9M15 10v9"/><path d="M3 19h18"/></svg>
+                </div>
+                <div class="method-info">
+                  <p class="method-name">Transfer Bank</p>
+                  <p class="method-desc">Transfer manual via rekening bank</p>
+                </div>
+              </label>
+            </div>
+
+            <!-- detail per method -->
+            <div class="method-detail" id="detail-qris">
+              <div class="qris-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20v.01"/></svg>
+              </div>
+              <p class="method-detail-sub">Scan kode QRIS di atas menggunakan aplikasi e-wallet atau m-banking, lalu unggah bukti pembayaran di bawah.</p>
+            </div>
+
+            <div class="method-detail" id="detail-dana">
+              <div class="copy-row">
+                <span>088218403135</span>
+                <button type="button" class="copy-btn" id="copyDana">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                  Salin
+                </button>
+              </div>
+              <p class="method-detail-sub">a.n. RAPI STORE. Transfer sesuai nominal, lalu unggah bukti pembayaran.</p>
+            </div>
+
+            <div class="method-detail" id="detail-bank">
+              <div class="copy-row">
+                <span>1234 5678 9012</span>
+                <button type="button" class="copy-btn" id="copyBank">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                  Salin
+                </button>
+              </div>
+              <p class="method-detail-sub">Bank Central — a.n. RAPI STORE. Transfer sesuai nominal, lalu unggah bukti pembayaran.</p>
+            </div>
+          </div>
+
+          <!-- proof upload -->
+          <div class="card">
+            <h2 class="card-title">Bukti Pembayaran</h2>
+            <label class="upload-box" id="uploadBox" for="proofInput">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>
+              <p>Tap untuk unggah foto bukti transfer</p>
+              <p class="hint">JPG, PNG, atau WEBP. Maksimal 5MB.</p>
+              <input type="file" id="proofInput" accept="image/png, image/jpeg, image/webp">
+            </label>
+            <div class="upload-progress-bar" id="uploadProgressBar">
+              <div class="upload-progress-fill" id="uploadProgressFill"></div>
+            </div>
+          </div>
+
+          <!-- summary + submit -->
+          <div class="card">
+            <h2 class="card-title">Ringkasan</h2>
+            <div class="summary-row">
+              <span class="label">Nominal Top Up</span>
+              <span class="value" id="summaryAmount">Rp0</span>
+            </div>
+            <div class="summary-row">
+              <span class="label">Metode</span>
+              <span class="value" id="summaryMethod">Belum dipilih</span>
+            </div>
+            <div class="summary-row">
+              <span class="label">Total Dibayar</span>
+              <span class="value total" id="summaryTotal">Rp0</span>
+            </div>
+
+            <button type="submit" class="btn-submit" id="submitBtn">
+              <span class="btn-label">Top Up Sekarang</span>
+              <span class="spinner"></span>
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- RIGHT: history -->
+      <div>
+        <div class="card">
+          <h2 class="card-title">Riwayat Top Up</h2>
+          <div class="history-list" id="topupHistoryList">
+            <div class="history-item"><div class="sk" style="width:38px;height:38px;border-radius:10px;"></div><div style="flex:1;"><div class="sk" style="height:13px;width:60%;margin-bottom:6px;"></div><div class="sk" style="height:10px;width:40%;"></div></div></div>
+            <div class="history-item"><div class="sk" style="width:38px;height:38px;border-radius:10px;"></div><div style="flex:1;"><div class="sk" style="height:13px;width:60%;margin-bottom:6px;"></div><div class="sk" style="height:10px;width:40%;"></div></div></div>
+            <div class="history-item"><div class="sk" style="width:38px;height:38px;border-radius:10px;"></div><div style="flex:1;"><div class="sk" style="height:13px;width:60%;margin-bottom:6px;"></div><div class="sk" style="height:10px;width:40%;"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+  <span id="toastText">Terjadi kesalahan.</span>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import {
+    getFirestore, doc, getDoc, collection, addDoc,
+    query, orderBy, limit, getDocs, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import {
+    getStorage, ref, uploadBytesResumable, getDownloadURL
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBJJjcICAkbVWjrw5-zYMzcKqPGhS0nS0I",
+    authDomain: "piwstore.firebaseapp.com",
+    projectId: "piwstore"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  // Set to true once Firebase Storage is upgraded to the Blaze plan and ready to accept uploads.
+  const STORAGE_ENABLED = false;
+
+  // Fonnte WhatsApp Gateway — sends an admin notification when a top up request is submitted.
+  const FONNTE_TOKEN = 'qtGmJCugwtoEEytevB2j';
+  const ADMIN_WA_NUMBER = '6288218403135'; // sesuaikan dengan nomor admin penerima notifikasi
+
+  // ---------- sidebar / mobile menu ----------
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('backdrop');
+  document.getElementById('menuBtn').addEventListener('click', () => {
+    sidebar.classList.add('open'); backdrop.classList.add('show');
+  });
+  backdrop.addEventListener('click', () => {
+    sidebar.classList.remove('open'); backdrop.classList.remove('show');
+  });
+  document.querySelectorAll('.sb-link').forEach(link => {
+    link.addEventListener('click', () => {
+      sidebar.classList.remove('open'); backdrop.classList.remove('show');
+    });
+  });
+
+  // ---------- toast ----------
+  const toast = document.getElementById('toast');
+  const toastText = document.getElementById('toastText');
+  function showToast(msg, type){
+    toastText.textContent = msg;
+    toast.className = 'toast show ' + (type || '');
+    setTimeout(() => toast.classList.remove('show'), 3500);
+  }
+
+  function formatRupiah(num){
+    return 'Rp' + Number(num || 0).toLocaleString('id-ID');
+  }
+
+  function formatDateTime(ts){
+    if(!ts) return '';
+    const date = ts.toDate ? ts.toDate() : new Date(ts);
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) +
+      ' · ' + date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // ---------- state ----------
+  let currentUser = null;
+  let selectedAmount = 0;
+  let selectedMethod = '';
+  let pendingProofURL = null;
+
+  // ---------- auth gate ----------
+  onAuthStateChanged(auth, async (user) => {
+    if(!user){
+      window.location.href = 'index.html#login';
+      return;
+    }
+    currentUser = user;
+    await loadTopupHistory(user);
+  });
+
+  // ---------- nominal selection ----------
+  const nominalGrid = document.getElementById('nominalGrid');
+  const customAmountInput = document.getElementById('customAmount');
+  const amountMsg = document.getElementById('amountMsg');
+
+  nominalGrid.addEventListener('click', (e) => {
+    const btn = e.target.closest('.nominal-btn');
+    if(!btn) return;
+    document.querySelectorAll('.nominal-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    customAmountInput.value = '';
+    selectedAmount = Number(btn.dataset.amount);
+    updateSummary();
+  });
+
+  customAmountInput.addEventListener('input', () => {
+    const digitsOnly = customAmountInput.value.replace(/[^0-9]/g, '');
+    customAmountInput.value = digitsOnly;
+    document.querySelectorAll('.nominal-btn').forEach(b => b.classList.remove('active'));
+    selectedAmount = Number(digitsOnly || 0);
+
+    if(selectedAmount > 0 && selectedAmount < 10000){
+      amountMsg.textContent = 'Minimal top up Rp10.000.';
+      amountMsg.classList.add('error');
+    }else{
+      amountMsg.textContent = 'Minimal top up Rp10.000.';
+      amountMsg.classList.remove('error');
+    }
+    updateSummary();
+  });
+
+  // ---------- method selection ----------
+  const methodList = document.getElementById('methodList');
+  methodList.addEventListener('click', (e) => {
+    const option = e.target.closest('.method-option');
+    if(!option) return;
+
+    document.querySelectorAll('.method-option').forEach(o => o.classList.remove('active'));
+    document.querySelectorAll('.method-detail').forEach(d => d.classList.remove('show'));
+
+    option.classList.add('active');
+    option.querySelector('input').checked = true;
+    selectedMethod = option.dataset.method;
+
+    const detail = document.getElementById('detail-' + selectedMethod);
+    if(detail) detail.classList.add('show');
+
+    updateSummary();
+  });
+
+  document.getElementById('copyDana').addEventListener('click', () => copyText('088218403135', 'Nomor DANA'));
+  document.getElementById('copyBank').addEventListener('click', () => copyText('1234567890912', 'Nomor rekening'));
+
+  function copyText(text, label){
+    navigator.clipboard.writeText(text)
+      .then(() => showToast(label + ' berhasil disalin.', 'success'))
+      .catch(() => showToast('Gagal menyalin. Salin manual ya.', 'error'));
+  }
+
+  // ---------- summary ----------
+  const methodLabels = { qris: 'QRIS', dana: 'DANA', bank: 'Transfer Bank' };
+
+  function updateSummary(){
+    document.getElementById('summaryAmount').textContent = formatRupiah(selectedAmount);
+    document.getElementById('summaryMethod').textContent = methodLabels[selectedMethod] || 'Belum dipilih';
+    document.getElementById('summaryTotal').textContent = formatRupiah(selectedAmount);
+  }
+
+  // ---------- proof upload ----------
+  const proofInput = document.getElementById('proofInput');
+  const uploadBox = document.getElementById('uploadBox');
+  const uploadProgressBar = document.getElementById('uploadProgressBar');
+  const uploadProgressFill = document.getElementById('uploadProgressFill');
+
+  proofInput.addEventListener('change', () => {
+    const file = proofInput.files[0];
+    if(!file || !currentUser) return;
+
+    if(!STORAGE_ENABLED){
+      showToast('Upload bukti pembayaran belum tersedia saat ini. Coba lagi nanti.', 'error');
+      proofInput.value = '';
+      return;
+    }
+
+    if(!file.type.startsWith('image/')){
+      showToast('File harus berupa gambar.', 'error');
+      return;
+    }
+    if(file.size > 5 * 1024 * 1024){
+      showToast('Ukuran gambar maksimal 5MB.', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      uploadBox.classList.add('has-preview');
+      uploadBox.innerHTML = `
+        <img src="${reader.result}" class="preview-img" alt="Bukti pembayaran">
+        <button type="button" class="remove-preview" id="removeProofBtn">Hapus & ganti foto</button>`;
+      document.getElementById('removeProofBtn').addEventListener('click', resetUploadBox);
+    };
+    reader.readAsDataURL(file);
+
+    const storageRef = ref(storage, `topup-proofs/${currentUser.uid}/${Date.now()}_${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadProgressBar.classList.add('show');
+
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+        uploadProgressFill.style.width = pct + '%';
+      },
+      (error) => {
+        uploadProgressBar.classList.remove('show');
+        showToast('Gagal mengunggah bukti pembayaran.', 'error');
+        console.error(error);
+      },
+      async () => {
+        try{
+          pendingProofURL = await getDownloadURL(uploadTask.snapshot.ref);
+          showToast('Bukti pembayaran berhasil diunggah.', 'success');
+        }catch(err){
+          showToast('Gagal memproses bukti pembayaran.', 'error');
+          console.error(err);
+        }finally{
+          uploadProgressBar.classList.remove('show');
+        }
+      }
+    );
+  });
+
+  function resetUploadBox(){
+    pendingProofURL = null;
+    proofInput.value = '';
+    uploadBox.classList.remove('has-preview');
+    uploadBox.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>
+      <p>Tap untuk unggah foto bukti transfer</p>
+      <p class="hint">JPG, PNG, atau WEBP. Maksimal 5MB.</p>
+      <input type="file" id="proofInput" accept="image/png, image/jpeg, image/webp">`;
+  }
+
+  // ---------- Fonnte WA notification ----------
+  async function sendFonnteNotification(amount, method, username){
+    try{
+      const formData = new FormData();
+      formData.append('target', ADMIN_WA_NUMBER);
+      formData.append('message',
+        `🔔 Top Up Baru — RAPI STORE\n\n` +
+        `User: ${username}\n` +
+        `Nominal: ${formatRupiah(amount)}\n` +
+        `Metode: ${methodLabels[method] || method}\n\n` +
+        `Mohon segera dicek dan dikonfirmasi di dashboard admin.`
+      );
+
+      await fetch('https://api.fonnte.com/send', {
+        method: 'POST',
+        headers: { 'Authorization': FONNTE_TOKEN },
+        body: formData
+      });
+    }catch(err){
+      // Notification failure should not block the top up submission itself.
+      console.error('Gagal mengirim notifikasi WA:', err);
+    }
+  }
+
+  // ---------- submit ----------
+  const form = document.getElementById('topupForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  function setLoading(isLoading){
+    submitBtn.disabled = isLoading;
+    submitBtn.classList.toggle('loading', isLoading);
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if(!currentUser) return;
+
+    if(selectedAmount < 10000){
+      showToast('Pilih atau masukkan nominal minimal Rp10.000.', 'error');
+      return;
+    }
+    if(!selectedMethod){
+      showToast('Pilih metode pembayaran terlebih dahulu.', 'error');
+      return;
+    }
+    if(STORAGE_ENABLED && !pendingProofURL){
+      showToast('Unggah bukti pembayaran terlebih dahulu.', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try{
+      const topupData = {
+        amount: selectedAmount,
+        method: selectedMethod,
+        proofURL: pendingProofURL || null,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      };
+
+      await addDoc(collection(db, 'users', currentUser.uid, 'topupRequests'), topupData);
+
+      const username = currentUser.displayName || currentUser.email || 'Pengguna';
+      await sendFonnteNotification(selectedAmount, selectedMethod, username);
+
+      showToast('Top up berhasil diajukan. Menunggu konfirmasi admin.', 'success');
+      form.reset();
+      selectedAmount = 0;
+      selectedMethod = '';
+      pendingProofURL = null;
+      document.querySelectorAll('.nominal-btn, .method-option').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.method-detail').forEach(d => d.classList.remove('show'));
+      resetUploadBox();
+      updateSummary();
+      await loadTopupHistory(currentUser);
+    }catch(err){
+      showToast('Gagal mengajukan top up. Coba lagi.', 'error');
+      console.error(err);
+    }finally{
+      setLoading(false);
+    }
+  });
+
+  // ---------- top up history ----------
+  const statusLabels = { pending: 'Menunggu', confirmed: 'Dikonfirmasi', completed: 'Selesai', rejected: 'Ditolak' };
+
+  async function loadTopupHistory(user){
+    const list = document.getElementById('topupHistoryList');
+    try{
+      const historyQuery = query(
+        collection(db, 'users', user.uid, 'topupRequests'),
+        orderBy('createdAt', 'desc'),
+        limit(8)
+      );
+      const snap = await getDocs(historyQuery);
+
+      if(snap.empty){
+        list.innerHTML = `
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>
+            <p>Belum ada riwayat top up.</p>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = '';
+      snap.forEach(docSnap => {
+        const d = docSnap.data();
+        const status = d.status || 'pending';
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `
+          <div class="history-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+          </div>
+          <div class="history-detail">
+            <p class="history-title">${formatRupiah(d.amount)}</p>
+            <p class="history-meta">${methodLabels[d.method] || d.method} · ${formatDateTime(d.createdAt)}</p>
+          </div>
+          <span class="status-badge ${status}">${statusLabels[status] || status}</span>`;
+        list.appendChild(item);
+      });
+    }catch(err){
+      list.innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+          <p>Gagal memuat riwayat top up.</p>
+        </div>`;
+      showToast('Gagal memuat riwayat top up dari Firestore.', 'error');
+      console.error(err);
+    }
+  }
+
+  // ---------- logout ----------
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    try{
+      await signOut(auth);
+      window.location.href = 'index.html#login';
+    }catch(err){
+      showToast('Gagal keluar. Coba lagi.', 'error');
+      console.error(err);
+    }
+  });
+</script>
+
+</body>
+</html>
