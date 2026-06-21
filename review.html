@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Review Produk - RAPI STORE</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK (compat, sama dengan detail-produk.html) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+:root{
+  --bg:#0a0d13;
+  --bg-soft:#0d1119;
+  --surface:#121826;
+  --surface-2:#172033;
+  --border:#222b3d;
+  --border-soft:#1a2231;
+  --text:#edf0f7;
+  --text-muted:#8c93a8;
+  --text-faint:#5d6478;
+  --accent:#7c5cfc;
+  --accent-soft:#7c5cfc26;
+  --accent-2:#26d9c8;
+  --accent-2-soft:#26d9c826;
+  --gold:#ffc24b;
+  --warn:#ff7a45;
+  --good:#3ddc97;
+  --danger:#ff5470;
+  --radius:14px;
+  --radius-sm:9px;
+  --shadow-glow:0 0 0 1px var(--border), 0 18px 40px -22px rgba(124,92,252,0.35);
+  --font-display:'Space Grotesk', sans-serif;
+  --font-body:'Inter', sans-serif;
+  --font-mono:'JetBrains Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  min-height:100vh;
+  position:relative;
+  overflow-x:hidden;
+  padding-bottom:40px;
+}
+a{color:inherit;text-decoration:none;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.45;}}
+@keyframes spin{to{transform:rotate(360deg);}}
+.fade-up{animation:fadeUp .5s ease both;}
+
+/* ===== backdrop (signature RapiStore) ===== */
+.grid-overlay{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(var(--border-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-soft) 1px, transparent 1px);
+  background-size:42px 42px;
+  -webkit-mask-image:radial-gradient(ellipse 80% 55% at 50% 0%, #000 35%, transparent 80%);
+  mask-image:radial-gradient(ellipse 80% 55% at 50% 0%, #000 35%, transparent 80%);
+  opacity:.5;
+}
+.glow-a{position:fixed;top:-160px;left:-120px;width:480px;height:480px;border-radius:50%;
+  background:radial-gradient(circle, var(--accent-soft), transparent 70%);z-index:0;pointer-events:none;}
+.glow-b{position:fixed;top:120px;right:-160px;width:420px;height:420px;border-radius:50%;
+  background:radial-gradient(circle, var(--accent-2-soft), transparent 70%);z-index:0;pointer-events:none;}
+
+/* ===== topbar ===== */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(10,13,19,0.82);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.topbar-inner{
+  max-width:1000px;margin:0 auto;padding:14px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+}
+.logo{
+  font-family:var(--font-display);font-weight:700;font-size:19px;letter-spacing:.5px;
+  color:var(--text);display:flex;align-items:center;gap:2px;
+}
+.logo span{color:var(--accent-2);}
+.logo::before{content:"◆";color:var(--accent);font-size:13px;margin-right:8px;}
+.back-link{
+  display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--text-muted);
+  padding:9px 16px;border-radius:999px;border:1px solid var(--border);background:var(--surface);
+  transition:.18s ease;
+}
+.back-link:hover{border-color:var(--accent-2);color:var(--text);}
+
+/* ===== page wrap ===== */
+.content{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:24px 24px 60px;}
+
+.crumb{
+  display:flex;align-items:center;gap:8px;font-family:var(--font-mono);
+  font-size:12px;color:var(--text-faint);margin-bottom:18px;flex-wrap:wrap;
+}
+.crumb a{color:var(--accent-2);}
+.crumb a:hover{text-decoration:underline;}
+
+/* ===== product summary ===== */
+.product-summary{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:24px;
+}
+.product-summary .ph-img, .product-summary img{
+  width:84px;height:84px;border-radius:12px;object-fit:cover;background:var(--surface-2);
+  flex-shrink:0;border:1px solid var(--border);
+}
+.ph-img{display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:26px;}
+.product-summary .info{flex:1;min-width:200px;}
+.product-summary h1{font-family:var(--font-display);font-size:18.5px;margin-bottom:5px;line-height:1.3;}
+.product-summary .sub{color:var(--text-faint);font-family:var(--font-mono);font-size:12px;}
+
+.rating-overview{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+.score-block{text-align:center;min-width:84px;}
+.score-block .num{
+  font-family:var(--font-display);font-size:34px;font-weight:700;color:var(--gold);line-height:1;
+}
+.score-block .stars{color:var(--gold);font-size:13px;margin-top:4px;letter-spacing:1px;}
+.score-block .count{color:var(--text-faint);font-family:var(--font-mono);font-size:11.5px;margin-top:2px;}
+
+.bars{flex:1;min-width:170px;display:flex;flex-direction:column;gap:5px;}
+.bar-row{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);}
+.bar-row .label{width:28px;flex-shrink:0;}
+.bar-track{flex:1;height:6px;border-radius:6px;background:var(--surface-2);overflow:hidden;}
+.bar-fill{height:100%;background:var(--gold);border-radius:6px;transition:width .6s ease;}
+.bar-row .pct{width:32px;text-align:right;color:var(--text-faint);flex-shrink:0;}
+
+.btn-write{
+  background:linear-gradient(135deg, var(--accent), #5d3df0);color:#fff;border:none;
+  padding:12px 22px;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:13.5px;
+  cursor:pointer;transition:.18s ease;white-space:nowrap;
+}
+.btn-write:hover{filter:brightness(1.1);transform:translateY(-1px);}
+.btn-write:disabled{opacity:.5;cursor:not-allowed;}
+
+/* ===== filter bar ===== */
+.filter-bar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:14px 16px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);margin-bottom:14px;
+}
+.chip{
+  font-family:var(--font-body);font-size:12.5px;color:var(--text-muted);
+  background:var(--bg-soft);border:1px solid var(--border);padding:8px 14px;
+  border-radius:999px;cursor:pointer;transition:.16s ease;display:flex;align-items:center;gap:6px;
+  user-select:none;
+}
+.chip:hover{color:var(--text);border-color:var(--accent-2);}
+.chip.active{color:#0a0d13;background:var(--accent-2);border-color:var(--accent-2);font-weight:600;}
+.chip .tag-count{
+  background:rgba(255,255,255,.18);padding:1px 6px;border-radius:8px;font-size:10.5px;font-family:var(--font-mono);
+}
+.chip.active .tag-count{background:rgba(10,13,19,.18);}
+
+.filter-extra{margin-left:auto;display:flex;gap:8px;}
+select.sort-select{
+  background:var(--bg-soft);border:1px solid var(--border);color:var(--text-muted);
+  padding:8px 12px;border-radius:999px;font-size:12.5px;font-family:var(--font-body);cursor:pointer;
+}
+
+.filter-row-2{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;}
+.toggle-chip{
+  padding:7px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--border);
+  color:var(--text-faint);font-size:12px;cursor:pointer;transition:.16s ease;font-family:var(--font-mono);
+}
+.toggle-chip.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+
+/* ===== review list ===== */
+.review-list{display:flex;flex-direction:column;gap:13px;}
+.review-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:17px;animation:fadeUp .35s ease both;
+}
+.review-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:9px;flex-wrap:wrap;}
+.user-block{display:flex;gap:10px;align-items:center;}
+.avatar{
+  width:40px;height:40px;border-radius:50%;
+  background:linear-gradient(135deg, var(--accent), var(--accent-2));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;font-size:14px;color:#0a0d13;flex-shrink:0;
+}
+.user-name{font-weight:600;font-size:14px;}
+.user-meta{font-size:11.5px;color:var(--text-faint);margin-top:2px;display:flex;gap:8px;align-items:center;}
+.verified-badge{color:var(--good);font-size:10.5px;font-weight:600;display:flex;align-items:center;gap:3px;font-family:var(--font-mono);}
+
+.review-stars{color:var(--gold);font-size:14px;letter-spacing:1px;}
+
+.review-comment{font-size:13.5px;line-height:1.65;color:var(--text-muted);margin-bottom:10px;}
+
+.review-bottom{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.helpful-btn{
+  display:flex;align-items:center;gap:6px;background:var(--bg-soft);border:1px solid var(--border);
+  color:var(--text-muted);font-size:12px;font-family:var(--font-mono);padding:6px 12px;border-radius:999px;
+  cursor:pointer;transition:.16s ease;
+}
+.helpful-btn:hover{border-color:var(--accent-2);color:var(--text);}
+.helpful-btn.liked{color:var(--accent-2);border-color:var(--accent-2);background:var(--accent-2-soft);}
+.review-date{font-size:11.5px;color:var(--text-faint);font-family:var(--font-mono);}
+
+.seller-reply{
+  margin-top:11px;background:var(--bg-soft);border-left:3px solid var(--accent-2);
+  border-radius:0 9px 9px 0;padding:10px 13px;font-size:12.5px;color:var(--text-muted);
+}
+.seller-reply b{color:var(--accent-2);font-family:var(--font-mono);font-weight:600;}
+
+/* ===== states ===== */
+.state-box{text-align:center;padding:60px 20px;color:var(--text-faint);}
+.state-box .icon{font-size:36px;margin-bottom:12px;}
+.spinner{
+  width:34px;height:34px;border-radius:50%;border:3px solid var(--surface-2);
+  border-top-color:var(--accent);margin:0 auto 14px;animation:spin .8s linear infinite;
+}
+.load-more{
+  display:block;margin:22px auto 0;background:var(--surface);border:1px solid var(--border);
+  color:var(--text-muted);padding:11px 26px;border-radius:999px;font-size:12.5px;font-weight:600;
+  cursor:pointer;transition:.16s ease;font-family:var(--font-body);
+}
+.load-more:hover{border-color:var(--accent-2);color:var(--text);}
+
+/* ===== auth gate ===== */
+.auth-gate{
+  text-align:center;padding:70px 20px;color:var(--text-muted);
+}
+.auth-gate .icon{font-size:38px;margin-bottom:12px;}
+.auth-gate a{
+  display:inline-block;margin-top:14px;background:linear-gradient(135deg, var(--accent), #5d3df0);
+  color:#fff;padding:11px 24px;border-radius:999px;font-weight:600;font-size:13.5px;
+}
+
+/* ===== modal tulis review ===== */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(5,7,11,.7);backdrop-filter:blur(4px);
+  display:none;align-items:flex-end;justify-content:center;z-index:200;
+}
+.modal-overlay.open{display:flex;}
+@media (min-width:640px){.modal-overlay{align-items:center;}}
+.modal-box{
+  background:var(--bg-soft);border:1px solid var(--border);border-radius:18px 18px 0 0;
+  width:100%;max-width:500px;max-height:90vh;overflow-y:auto;padding:22px;
+  animation:slideUp .3s ease;box-shadow:var(--shadow-glow);
+}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+@media (min-width:640px){.modal-box{border-radius:16px;}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.modal-head h2{font-family:var(--font-display);font-size:17px;}
+.modal-close{
+  background:var(--surface);border:none;color:var(--text-muted);width:30px;height:30px;border-radius:50%;
+  cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:.16s ease;
+}
+.modal-close:hover{background:var(--surface-2);color:var(--danger);}
+
+.star-picker{display:flex;gap:8px;justify-content:center;margin:8px 0 20px;}
+.star-picker span{font-size:34px;cursor:pointer;color:var(--surface-2);transition:.15s;}
+.star-picker span.filled{color:var(--gold);}
+.star-label{text-align:center;font-size:12.5px;color:var(--text-faint);margin-top:-12px;margin-bottom:18px;font-family:var(--font-mono);}
+
+.form-group{margin-bottom:15px;}
+.form-group label{display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:7px;font-weight:600;}
+textarea{
+  width:100%;background:var(--surface);border:1px solid var(--border);border-radius:11px;
+  padding:12px 13px;color:var(--text);font-size:13.5px;font-family:var(--font-body);resize:vertical;
+  min-height:100px;transition:.16s ease;
+}
+textarea:focus{outline:none;border-color:var(--accent);}
+.char-count{font-size:11px;color:var(--text-faint);text-align:right;margin-top:4px;font-family:var(--font-mono);}
+
+.submit-review-btn{
+  width:100%;background:linear-gradient(135deg, var(--accent), #5d3df0);color:#fff;border:none;
+  padding:13px;border-radius:12px;font-weight:600;font-size:14.5px;cursor:pointer;margin-top:4px;
+  transition:.16s ease;font-family:var(--font-body);
+}
+.submit-review-btn:hover{filter:brightness(1.08);}
+.submit-review-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+  padding:13px 20px;border-radius:11px;font-size:13.5px;z-index:300;opacity:0;pointer-events:none;
+  transition:.25s ease;box-shadow:0 14px 30px -12px rgba(0,0,0,0.5);display:flex;align-items:center;gap:10px;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+.toast .dot{width:7px;height:7px;border-radius:50%;background:var(--good);flex:0 0 auto;}
+.toast.err .dot{background:var(--danger);}
+
+@media (max-width:560px){
+  .product-summary{flex-direction:column;align-items:flex-start;}
+  .rating-overview{width:100%;}
+  .btn-write{width:100%;}
+  .filter-extra{margin-left:0;width:100%;}
+  select.sort-select{flex:1;}
+  .content{padding:18px 16px 50px;}
+  .topbar-inner{padding:12px 16px;}
+}
+</style>
+</head>
+<body>
+
+<div class="grid-overlay"></div>
+<div class="glow-a"></div>
+<div class="glow-b"></div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="dashboard.html#dashboard">RAPI<span>STORE</span></a>
+    <a href="marketplace.html#marketplace" class="back-link">‹ Marketplace</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <div class="crumb">
+    <a href="marketplace.html#marketplace">Marketplace</a>
+    <span>/</span>
+    <a href="#" id="crumbDetail">Detail Produk</a>
+    <span>/</span>
+    <span style="color:var(--text-muted);">Review</span>
+  </div>
+
+  <!-- PRODUCT SUMMARY -->
+  <div class="product-summary fade-up" id="productSummary">
+    <div class="ph-img" id="productImgWrap">◆</div>
+    <div class="info">
+      <h1 id="productName">Memuat produk...</h1>
+      <div class="sub" id="productSub">—</div>
+    </div>
+
+    <div class="rating-overview">
+      <div class="score-block">
+        <div class="num" id="avgScore">0.0</div>
+        <div class="stars" id="avgStars">☆☆☆☆☆</div>
+        <div class="count" id="totalCount">0 ulasan</div>
+      </div>
+      <div class="bars" id="ratingBars"></div>
+    </div>
+
+    <button class="btn-write" id="btnWriteReview">✍️ Tulis Review</button>
+  </div>
+
+  <!-- FILTER -->
+  <div class="filter-bar" id="filterBar">
+    <div class="chip active" data-filter="all">Semua <span class="tag-count" id="cnt-all">0</span></div>
+    <div class="chip" data-filter="5">⭐5 <span class="tag-count" id="cnt-5">0</span></div>
+    <div class="chip" data-filter="4">⭐4 <span class="tag-count" id="cnt-4">0</span></div>
+    <div class="chip" data-filter="3">⭐3 <span class="tag-count" id="cnt-3">0</span></div>
+    <div class="chip" data-filter="2">⭐2 <span class="tag-count" id="cnt-2">0</span></div>
+    <div class="chip" data-filter="1">⭐1 <span class="tag-count" id="cnt-1">0</span></div>
+
+    <div class="filter-extra">
+      <select class="sort-select" id="sortSelect">
+        <option value="newest">Terbaru</option>
+        <option value="oldest">Terlama</option>
+        <option value="highest">Rating Tertinggi</option>
+        <option value="lowest">Rating Terendah</option>
+        <option value="helpful">Paling Membantu</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="filter-row-2">
+    <div class="toggle-chip" data-toggle="comment">💬 Dengan Komentar</div>
+  </div>
+
+  <!-- REVIEW LIST -->
+  <div id="reviewListContainer">
+    <div class="state-box" id="loadingState">
+      <div class="spinner"></div>
+      Memuat review...
+    </div>
+  </div>
+
+  <button class="load-more" id="loadMoreBtn" style="display:none;">Muat Lebih Banyak</button>
+
+</div>
+
+<!-- MODAL TULIS REVIEW -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>✍️ Tulis Review</h2>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+
+    <div class="form-group">
+      <label style="text-align:center;display:block;">Berapa bintang untuk produk ini?</label>
+      <div class="star-picker" id="starPicker">
+        <span data-val="1">★</span>
+        <span data-val="2">★</span>
+        <span data-val="3">★</span>
+        <span data-val="4">★</span>
+        <span data-val="5">★</span>
+      </div>
+      <div class="star-label" id="starLabel">Ketuk bintang untuk menilai</div>
+    </div>
+
+    <div class="form-group">
+      <label>Komentar</label>
+      <textarea id="inputComment" maxlength="500" placeholder="Ceritakan pengalamanmu dengan produk ini..."></textarea>
+      <div class="char-count"><span id="charCount">0</span>/500</div>
+    </div>
+
+    <button class="submit-review-btn" id="submitReviewBtn">Kirim Review</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="dot"></span><span id="toastMsg">Review berhasil dikirim!</span></div>
+
+<script>
+/* =========================================================
+   FIREBASE INIT — konfigurasi sama dengan project RapiStore
+   (marketplace.html / detail-produk.html)
+========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyBJJjcICAkbVWjrw5-zYMzcKqPGhS0nS0I",
+  authDomain: "piwstore.firebaseapp.com",
+  projectId: "piwstore",
+  storageBucket: "piwstore.firebasestorage.app",
+  messagingSenderId: "419258630997",
+  appId: "1:419258630997:web:aefc0e34cc4b7ca16d25dc",
+  measurementId: "G-M6NHQMHQV4"
+};
+
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* =========================================================
+   AMBIL ID PRODUK
+   Pola didukung: review.html?id=ID  |  review.html#review/ID
+========================================================= */
+function resolveProductId(){
+  const params = new URLSearchParams(window.location.search);
+  const fromQuery = params.get('id') || params.get('productId');
+  if (fromQuery) return fromQuery;
+
+  const hash = window.location.hash || '';
+  const slashMatch = hash.match(/#review\/([^?&]+)/);
+  if (slashMatch) return decodeURIComponent(slashMatch[1]);
+
+  const qIndex = hash.indexOf('?');
+  if (qIndex !== -1){
+    const hashParams = new URLSearchParams(hash.slice(qIndex + 1));
+    const fromHashQuery = hashParams.get('id') || hashParams.get('productId');
+    if (fromHashQuery) return fromHashQuery;
+  }
+  return null;
+}
+
+const PRODUCT_ID = resolveProductId();
+
+document.getElementById('crumbDetail').href = PRODUCT_ID
+  ? `detail-produk.html?id=${encodeURIComponent(PRODUCT_ID)}`
+  : `marketplace.html#marketplace`;
+
+/* =========================================================
+   STATE
+========================================================= */
+let currentUser = null;
+let productData = null;
+let allReviews = [];
+let currentFilter = 'all';
+let currentSort = 'newest';
+let onlyWithComment = false;
+let visibleCount = 5;
+const PAGE_SIZE = 5;
+let selectedStar = 0;
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+function formatRupiah(num){
+  if (num === null || num === undefined || isNaN(num)) return null;
+  return "Rp" + Number(num).toLocaleString('id-ID');
+}
+function starString(n){
+  const r = Math.max(0, Math.min(5, Math.round(n)));
+  return '★★★★★☆☆☆☆☆'.slice(5-r, 10-r);
+}
+function tsToMillis(v){
+  if (!v) return Date.now();
+  if (typeof v.toMillis === 'function') return v.toMillis();
+  if (v.seconds) return v.seconds * 1000;
+  return Date.now();
+}
+function formatDate(ms){
+  return new Date(ms).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
+}
+
+/* =========================================================
+   AUTH — produk & review publik tetap bisa dilihat tanpa
+   login, tapi menulis review wajib login (selaras dengan
+   pola auth di detail-produk.html)
+========================================================= */
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  const btn = document.getElementById('btnWriteReview');
+  if (!user){
+    btn.textContent = '🔒 Masuk untuk Review';
+  } else {
+    btn.textContent = '✍️ Tulis Review';
+  }
+});
+
+/* =========================================================
+   LOAD PRODUK INFO (koleksi: products/{id})
+========================================================= */
+async function loadProductInfo(){
+  if (!PRODUCT_ID){
+    document.getElementById('productName').textContent = 'Produk tidak diketahui';
+    document.getElementById('productSub').textContent = 'Buka halaman ini lewat tombol "Lihat Review" di Detail Produk';
+    document.getElementById('btnWriteReview').disabled = true;
+    return;
+  }
+  try{
+    const snap = await db.collection('products').doc(PRODUCT_ID).get();
+    if (snap.exists){
+      productData = { id: snap.id, ...snap.data() };
+      document.title = `Review ${productData.name || 'Produk'} - RAPI STORE`;
+      document.getElementById('productName').textContent = productData.name || 'Produk';
+
+      const priceStr = formatRupiah(productData.price);
+      document.getElementById('productSub').textContent =
+        [productData.category, priceStr].filter(Boolean).join(' · ') || '—';
+
+      const img = (productData.images && productData.images[0]) || productData.imageUrl || '';
+      const wrap = document.getElementById('productImgWrap');
+      if (img){
+        wrap.outerHTML = `<img src="${escapeHtml(img)}" alt="${escapeHtml(productData.name||'')}" id="productImgWrap">`;
+      }
+    } else {
+      document.getElementById('productName').textContent = 'Produk tidak ditemukan';
+      document.getElementById('productSub').textContent = 'Produk ini mungkin sudah dihapus.';
+    }
+  }catch(e){
+    console.error('Gagal memuat produk:', e);
+    document.getElementById('productName').textContent = 'Gagal memuat produk';
+  }
+}
+
+/* =========================================================
+   LOAD REVIEWS — subcollection: products/{id}/reviews
+   (selaras dengan loadReviews() di detail-produk.html)
+========================================================= */
+async function loadReviews(){
+  const container = document.getElementById('reviewListContainer');
+
+  if (!PRODUCT_ID){
+    container.innerHTML = `
+      <div class="state-box">
+        <div class="icon">📦</div>
+        Tidak ada produk yang dipilih untuk ditampilkan review-nya.
+      </div>`;
+    return;
+  }
+
+  try{
+    const snap = await db.collection('products').doc(PRODUCT_ID)
+      .collection('reviews').orderBy('createdAt', 'desc').limit(200).get();
+
+    allReviews = snap.docs.map(doc => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        name: d.userName || d.name || 'Pembeli',
+        rating: d.rating || 0,
+        comment: d.comment || d.text || '',
+        helpful: d.helpful || 0,
+        verified: d.verified || false,
+        sellerReply: d.sellerReply || null,
+        createdAt: tsToMillis(d.createdAt)
+      };
+    });
+
+  }catch(e){
+    console.error('Gagal memuat review dari Firestore:', e);
+    container.innerHTML = `
+      <div class="state-box">
+        <div class="icon">⚠️</div>
+        Ulasan tidak dapat dimuat saat ini. Coba refresh halaman.
+      </div>`;
+    return;
+  }
+
+  renderRatingOverview();
+  applyFiltersAndRender();
+}
+
+/* =========================================================
+   RENDER RATING OVERVIEW
+========================================================= */
+function renderRatingOverview(){
+  const total = allReviews.length;
+  const avg = total ? (allReviews.reduce((s,r)=>s+r.rating,0)/total) : 0;
+
+  document.getElementById('avgScore').textContent = avg.toFixed(1);
+  document.getElementById('avgStars').textContent = starString(avg);
+  document.getElementById('totalCount').textContent = `${total} ulasan`;
+
+  const counts = {1:0,2:0,3:0,4:0,5:0};
+  allReviews.forEach(r => { if (counts[r.rating] !== undefined) counts[r.rating]++; });
+
+  document.getElementById('cnt-all').textContent = total;
+  for (let i=1;i<=5;i++) document.getElementById('cnt-'+i).textContent = counts[i];
+
+  const barsHtml = [5,4,3,2,1].map(star => {
+    const c = counts[star] || 0;
+    const pct = total ? Math.round((c/total)*100) : 0;
+    return `
+      <div class="bar-row">
+        <span class="label">${star}★</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <span class="pct">${pct}%</span>
+      </div>`;
+  }).join('');
+  document.getElementById('ratingBars').innerHTML = barsHtml;
+}
+
+/* =========================================================
+   FILTER + SORT + RENDER LIST
+========================================================= */
+function applyFiltersAndRender(){
+  let filtered = [...allReviews];
+
+  if (currentFilter !== 'all'){
+    filtered = filtered.filter(r => r.rating === Number(currentFilter));
+  }
+  if (onlyWithComment){
+    filtered = filtered.filter(r => r.comment && r.comment.trim().length > 0);
+  }
+
+  switch(currentSort){
+    case 'newest': filtered.sort((a,b)=>b.createdAt-a.createdAt); break;
+    case 'oldest': filtered.sort((a,b)=>a.createdAt-b.createdAt); break;
+    case 'highest': filtered.sort((a,b)=>b.rating-a.rating); break;
+    case 'lowest': filtered.sort((a,b)=>a.rating-b.rating); break;
+    case 'helpful': filtered.sort((a,b)=>b.helpful-a.helpful); break;
+  }
+
+  renderReviewList(filtered);
+}
+
+function renderReviewList(list){
+  const container = document.getElementById('reviewListContainer');
+  document.getElementById('loadMoreBtn').style.display = 'none';
+
+  if (list.length === 0){
+    container.innerHTML = `
+      <div class="state-box">
+        <div class="icon">🗨️</div>
+        ${allReviews.length === 0 ? 'Belum ada ulasan untuk produk ini.' : 'Tidak ada review yang cocok dengan filter ini.'}
+      </div>`;
+    return;
+  }
+
+  const visible = list.slice(0, visibleCount);
+
+  const html = visible.map(r => {
+    const initial = (r.name || '?').charAt(0).toUpperCase();
+    const replyHtml = r.sellerReply
+      ? `<div class="seller-reply"><b>Balasan Penjual:</b> ${escapeHtml(r.sellerReply)}</div>`
+      : '';
+
+    return `
+      <div class="review-card">
+        <div class="review-top">
+          <div class="user-block">
+            <div class="avatar">${initial}</div>
+            <div>
+              <div class="user-name">${escapeHtml(r.name)}</div>
+              <div class="user-meta">
+                ${r.verified ? '<span class="verified-badge">✔ Pembelian Terverifikasi</span>' : ''}
+              </div>
+            </div>
+          </div>
+          <div class="review-stars">${starString(r.rating)}</div>
+        </div>
+
+        <div class="review-comment">${escapeHtml(r.comment) || '<em style="color:var(--text-faint)">Tidak ada komentar.</em>'}</div>
+
+        <div class="review-bottom">
+          <button class="helpful-btn" data-id="${r.id}" onclick="toggleHelpful(this)">
+            👍 Membantu (<span class="helpful-count">${r.helpful}</span>)
+          </button>
+          <span class="review-date">${formatDate(r.createdAt)}</span>
+        </div>
+
+        ${replyHtml}
+      </div>`;
+  }).join('');
+
+  container.innerHTML = `<div class="review-list">${html}</div>`;
+
+  if (list.length > visibleCount){
+    document.getElementById('loadMoreBtn').style.display = 'block';
+  }
+}
+
+function toggleHelpful(btn){
+  // Catatan: ini hanya UI feedback lokal (belum ditulis ke Firestore)
+  // supaya tidak butuh aturan keamanan tambahan untuk fitur sekunder ini.
+  btn.classList.toggle('liked');
+  const span = btn.querySelector('.helpful-count');
+  let val = parseInt(span.textContent, 10);
+  val = btn.classList.contains('liked') ? val + 1 : val - 1;
+  span.textContent = val;
+}
+
+/* =========================================================
+   EVENTS: FILTER, SORT, TOGGLE
+========================================================= */
+document.getElementById('filterBar').addEventListener('click', (e)=>{
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  document.querySelectorAll('#filterBar .chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active');
+  currentFilter = chip.dataset.filter;
+  visibleCount = PAGE_SIZE;
+  applyFiltersAndRender();
+});
+
+document.getElementById('sortSelect').addEventListener('change', (e)=>{
+  currentSort = e.target.value;
+  applyFiltersAndRender();
+});
+
+document.querySelectorAll('.toggle-chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    chip.classList.toggle('active');
+    onlyWithComment = chip.classList.contains('active');
+    visibleCount = PAGE_SIZE;
+    applyFiltersAndRender();
+  });
+});
+
+document.getElementById('loadMoreBtn').addEventListener('click', ()=>{
+  visibleCount += PAGE_SIZE;
+  applyFiltersAndRender();
+});
+
+/* =========================================================
+   MODAL: TULIS REVIEW
+========================================================= */
+const modalOverlay = document.getElementById('modalOverlay');
+const starPicker = document.getElementById('starPicker');
+const starLabel = document.getElementById('starLabel');
+const inputComment = document.getElementById('inputComment');
+const charCount = document.getElementById('charCount');
+
+const starLabels = {1:'Sangat Buruk 😞',2:'Buruk 😕',3:'Cukup 🙂',4:'Bagus 😄',5:'Luar Biasa! 🤩'};
+
+function openModal(){
+  if (!PRODUCT_ID){
+    showToast('⚠️ Tidak ada produk untuk direview', true);
+    return;
+  }
+  if (!currentUser){
+    showToast('🔒 Silakan masuk untuk menulis review', true);
+    setTimeout(()=> window.location.href = 'login.html', 900);
+    return;
+  }
+  modalOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(){
+  modalOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+  resetForm();
+}
+
+document.getElementById('btnWriteReview').addEventListener('click', openModal);
+document.getElementById('modalClose').addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', (e)=>{ if (e.target === modalOverlay) closeModal(); });
+
+starPicker.addEventListener('click', (e)=>{
+  const span = e.target.closest('span');
+  if (!span) return;
+  selectedStar = Number(span.dataset.val);
+  updateStarUI();
+});
+
+function updateStarUI(){
+  starPicker.querySelectorAll('span').forEach(s=>{
+    s.classList.toggle('filled', Number(s.dataset.val) <= selectedStar);
+  });
+  starLabel.textContent = selectedStar ? starLabels[selectedStar] : 'Ketuk bintang untuk menilai';
+}
+
+inputComment.addEventListener('input', ()=>{
+  charCount.textContent = inputComment.value.length;
+});
+
+function resetForm(){
+  selectedStar = 0;
+  updateStarUI();
+  inputComment.value = '';
+  charCount.textContent = '0';
+}
+
+document.getElementById('submitReviewBtn').addEventListener('click', submitReview);
+
+async function submitReview(){
+  if (!currentUser){
+    showToast('🔒 Silakan masuk untuk menulis review', true);
+    return;
+  }
+  if (!productData){
+    showToast('⚠️ Data produk belum siap, coba lagi', true);
+    return;
+  }
+  if (selectedStar === 0){
+    showToast('⚠️ Pilih rating bintang dulu ya', true);
+    return;
+  }
+  const comment = inputComment.value.trim();
+  if (comment.length === 0){
+    showToast('⚠️ Komentar tidak boleh kosong', true);
+    return;
+  }
+
+  const submitBtn = document.getElementById('submitReviewBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Mengirim...';
+
+  const reviewPayload = {
+    userId: currentUser.uid,
+    userName: currentUser.displayName || currentUser.email || 'Pembeli',
+    rating: selectedStar,
+    comment: comment,
+    helpful: 0,
+    verified: false,
+    sellerReply: null,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try{
+    const reviewsRef = db.collection('products').doc(PRODUCT_ID).collection('reviews');
+    await reviewsRef.add(reviewPayload);
+
+    // Hitung ulang rating rata-rata & reviewCount, lalu simpan ke dokumen produk
+    // supaya konsisten dengan ringkasan rating di detail-produk.html
+    await recalcProductRating();
+
+    showToast('✅ Review berhasil dikirim!');
+    closeModal();
+
+    allReviews.unshift({
+      ...reviewPayload,
+      id: 'local-' + Date.now(),
+      createdAt: Date.now()
+    });
+    renderRatingOverview();
+    applyFiltersAndRender();
+
+  }catch(e){
+    console.error('Gagal mengirim review:', e);
+    showToast('❌ Gagal mengirim review. Coba lagi.', true);
+  }finally{
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Kirim Review';
+  }
+}
+
+async function recalcProductRating(){
+  try{
+    const snap = await db.collection('products').doc(PRODUCT_ID).collection('reviews').get();
+    const ratings = snap.docs.map(d => d.data().rating || 0);
+    const count = ratings.length;
+    const avg = count ? (ratings.reduce((a,b)=>a+b,0)/count) : 0;
+    await db.collection('products').doc(PRODUCT_ID).update({
+      rating: Math.round(avg * 10) / 10,
+      reviewCount: count
+    });
+  }catch(e){
+    console.error('Gagal memperbarui ringkasan rating produk:', e);
+  }
+}
+
+/* =========================================================
+   TOAST
+========================================================= */
+let toastTimeout;
+function showToast(msg, isError=false){
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  toast.classList.toggle('err', isError);
+  toast.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(()=> toast.classList.remove('show'), 3000);
+}
+
+/* =========================================================
+   INIT
+========================================================= */
+loadProductInfo();
+loadReviews();
+</script>
+
+</body>
+</html>
